@@ -10,7 +10,6 @@ import {
   ChevronDown,
   CircleAlert,
   Clipboard,
-  Command,
   Clock3,
   Download,
   FileJson2,
@@ -22,6 +21,7 @@ import {
   LockKeyhole,
   MessageCircle,
   MessageSquareText,
+  Menu,
   Plus,
   Printer,
   RotateCcw,
@@ -211,26 +211,6 @@ function GradientButton({ children, className = "", ...props }) {
     event.currentTarget.style.translate = "0px 0px";
     onPointerLeave?.(event);
   }}>{children}</button>;
-}
-
-function ScrambleLink({ label, children = label, ...props }) {
-  const [display, setDisplay] = useState(label);
-  const intervalRef = useRef(0);
-  const scramble = () => {
-    window.clearInterval(intervalRef.current);
-    let frame = 0;
-    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    intervalRef.current = window.setInterval(() => {
-      frame += 1;
-      setDisplay(label.split("").map((character, index) => character === " " || index < frame * 1.4 ? character : alphabet[Math.floor(Math.random() * alphabet.length)]).join(""));
-      if (frame >= 8) {
-        window.clearInterval(intervalRef.current);
-        setDisplay(label);
-      }
-    }, 24);
-  };
-  useEffect(() => () => window.clearInterval(intervalRef.current), []);
-  return <a {...props} aria-label={label} onPointerEnter={(event) => { scramble(); props.onPointerEnter?.(event); }} onFocus={scramble}><span aria-hidden="true">{display}</span><span className="sr-only">{children}</span></a>;
 }
 
 function AnimatedNumber({ value, suffix = "" }) {
@@ -685,7 +665,12 @@ function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [booted, setBooted] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [navScrolled, setNavScrolled] = useState(false);
+  const [activeNav, setActiveNav] = useState("workspace");
   const textAreaRef = useRef(null);
+  const menuButtonRef = useRef(null);
+  const mobileMenuRef = useRef(null);
   const fileInputRef = useRef(null);
   const searchRef = useRef(null);
   const gutterRef = useRef(null);
@@ -703,6 +688,59 @@ function App() {
     const timeout = window.setTimeout(() => scrollPageTo(document.getElementById("dashboard"), reducedMotion), 120);
     return () => window.clearTimeout(timeout);
   }, [result, reducedMotion]);
+
+  useEffect(() => {
+    const onScroll = () => setNavScrolled(window.scrollY > 16);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const targets = ["workspace", "scenarios", ...(result ? ["dashboard"] : [])]
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+    if (!targets.length) return undefined;
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting)
+        .sort((first, second) => second.intersectionRatio - first.intersectionRatio);
+      if (visible[0]) setActiveNav(visible[0].target.id);
+    }, { rootMargin: "-18% 0px -64% 0px", threshold: [0, .15, .35, .6] });
+    targets.forEach((target) => observer.observe(target));
+    return () => observer.disconnect();
+  }, [result]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const firstLink = mobileMenuRef.current?.querySelector("a");
+    const focusTimeout = window.setTimeout(() => firstLink?.focus(), 40);
+    const onMenuKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+      if (event.key !== "Tab" || !mobileMenuRef.current) return;
+      const controls = [...mobileMenuRef.current.querySelectorAll("a[href], button:not(:disabled)")];
+      if (!controls.length) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onMenuKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.clearTimeout(focusTimeout);
+      document.removeEventListener("keydown", onMenuKeyDown);
+    };
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -927,13 +965,30 @@ function App() {
     }}>
       <PageSystems />
       {isDraggingFile && <div className="drop-fullscreen" aria-live="polite"><Upload size={34} /><span>DROP TO DECODE</span><small>TXT / CSV // RELEASE TO LOAD THE CHAT</small></div>}
-      <header className="topbar">
-        <a className="brand" href="#" aria-label="GroupChat Decoder home"><span className="brand-mark"><Fingerprint size={19} /></span><span>groupchat<span>decoder</span></span><Badge tone="indigo">BETA</Badge></a>
-        <nav className="top-nav" aria-label="Primary navigation"><ScrambleLink label="DECODER" className={!result ? "active" : ""} href="#workspace">Decoder</ScrambleLink><ScrambleLink label="INTELLIGENCE" className={result ? "active" : ""} href={result ? "#dashboard" : "#scenarios"}>Intelligence</ScrambleLink></nav>
-        <div className="top-actions"><span className="service-status"><i /> ENGINE READY</span><button className="command-trigger" onClick={() => setPaletteOpen(true)} type="button"><Command size={14} /><span>Command</span><kbd>⌘ K</kbd></button></div>
+      <a className="skip-link" href="#main-content">Skip to content</a>
+      <header className={`topbar${navScrolled ? " is-scrolled" : ""}`}>
+        <a className="brand" href="#" aria-label="GroupChat Decoder home"><span className="brand-mark"><Fingerprint size={19} /></span><span>GroupChat Decoder</span></a>
+        <nav className="top-nav" aria-label="Primary navigation">{[
+          ["workspace", "Decoder"],
+          ["scenarios", "Explore"],
+          ...(result ? [["dashboard", "Intelligence"]] : []),
+        ].map(([id, label]) => <a className={activeNav === id ? "active" : ""} href={`#${id}`} key={id} onClick={() => setMobileMenuOpen(false)}>{activeNav === id && <motion.span className="nav-active-pill" layoutId="nav-active-pill" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}{label}</a>)}</nav>
+        <div className="top-actions"><button className="nav-demo-button" onClick={() => { setMobileMenuOpen(false); startDemo(DEMOS[2]); }} type="button">Try demo <Zap size={14} /></button><button className="nav-decode-link" onClick={() => { setMobileMenuOpen(false); focusWorkspace(); }} type="button">Decode a chat <ArrowRight size={14} /></button></div>
+        <button ref={menuButtonRef} className="mobile-menu-toggle" type="button" aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={mobileMenuOpen} aria-controls="mobile-navigation" onClick={() => setMobileMenuOpen((open) => !open)}>{mobileMenuOpen ? <X size={21} /> : <Menu size={21} />}</button>
+        <AnimatePresence>
+          {mobileMenuOpen && <motion.div ref={mobileMenuRef} id="mobile-navigation" className="mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: .18 }}>
+            {[
+              ["workspace", "Decoder"],
+              ["scenarios", "Explore scenarios"],
+              ...(result ? [["dashboard", "Intelligence report"]] : []),
+            ].map(([id, label]) => <a href={`#${id}`} key={id} onClick={() => setMobileMenuOpen(false)}>{label}<ArrowRight size={18} /></a>)}
+            <button className="nav-demo-button" type="button" onClick={() => { setMobileMenuOpen(false); startDemo(DEMOS[2]); }}>Try demo <Zap size={16} /></button>
+            <button className="nav-decode-link" type="button" onClick={() => { setMobileMenuOpen(false); focusWorkspace(); }}>Decode a chat <ArrowRight size={16} /></button>
+          </motion.div>}
+        </AnimatePresence>
       </header>
 
-      <main className="page-shell">
+      <main className="page-shell" id="main-content" tabIndex={-1}>
         <section className="hero-section" aria-labelledby="hero-title">
           <div className="hero-copy">
             <span className="eyebrow hero-kicker"><span className="live-dot" /> CONVERSATION INTELLIGENCE / 001</span>
