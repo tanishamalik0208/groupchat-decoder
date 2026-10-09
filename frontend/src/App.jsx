@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowRight,
@@ -11,6 +11,7 @@ import {
   CircleAlert,
   Clipboard,
   Command,
+  Clock3,
   Download,
   FileJson2,
   FileText,
@@ -36,9 +37,14 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import { BootSequence, PageSystems, SoundToggle } from "./CyberEffects.jsx";
+import { animateDashboard, scrollPageTo } from "./pageMotion.js";
+import StorySections from "./StorySections.jsx";
+
+const ParticleField = lazy(() => import("./ParticleField.jsx"));
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-const MIN_DECODING_MS = 1800;
+const MIN_DECODING_MS = 2500;
 const NAV_SECTIONS = [
   ["summary", "Overview"],
   ["actions", "Actions"],
@@ -181,31 +187,52 @@ function Badge({ children, tone = "neutral", dot = false }) {
   return <span className={`badge badge-${tone}`}>{dot && <i aria-hidden="true" />}{children}</span>;
 }
 
+function LiveClock() {
+  const [time, setTime] = useState(() => new Date());
+  useEffect(() => {
+    const interval = window.setInterval(() => setTime(new Date()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+  return <span className="hero-clock"><Clock3 size={12} />{time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</span>;
+}
+
 function GlassCard({ as: Element = "article", className = "", children, ...props }) {
   return <Element className={`glass-card ${className}`} {...props}>{children}</Element>;
 }
 
 function GradientButton({ children, className = "", ...props }) {
-  return <button className={`gradient-button ${className}`} {...props}>{children}</button>;
+  const buttonRef = useRef(null);
+  const { onPointerMove, onPointerLeave, ...buttonProps } = props;
+  return <button ref={buttonRef} className={`gradient-button ${className}`} {...buttonProps} onPointerMove={(event) => {
+    if (event.pointerType === "mouse") {
+      const rect = event.currentTarget.getBoundingClientRect();
+      event.currentTarget.style.translate = `${(event.clientX - rect.left - rect.width / 2) * .09}px ${(event.clientY - rect.top - rect.height / 2) * .12}px`;
+    }
+    onPointerMove?.(event);
+  }} onPointerLeave={(event) => {
+    event.currentTarget.style.translate = "0px 0px";
+    onPointerLeave?.(event);
+  }}>{children}</button>;
 }
 
-function Tabs({ label, options, value, onChange }) {
-  return (
-    <div className="tabs" role="tablist" aria-label={label}>
-      {options.map((option) => (
-        <button
-          aria-selected={value === option.value}
-          className={value === option.value ? "tab is-active" : "tab"}
-          key={option.value}
-          onClick={() => onChange(option.value)}
-          role="tab"
-          type="button"
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
+function ScrambleLink({ label, children = label, ...props }) {
+  const [display, setDisplay] = useState(label);
+  const intervalRef = useRef(0);
+  const scramble = () => {
+    window.clearInterval(intervalRef.current);
+    let frame = 0;
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    intervalRef.current = window.setInterval(() => {
+      frame += 1;
+      setDisplay(label.split("").map((character, index) => character === " " || index < frame * 1.4 ? character : alphabet[Math.floor(Math.random() * alphabet.length)]).join(""));
+      if (frame >= 8) {
+        window.clearInterval(intervalRef.current);
+        setDisplay(label);
+      }
+    }, 24);
+  };
+  useEffect(() => () => window.clearInterval(intervalRef.current), []);
+  return <a {...props} aria-label={label} onPointerEnter={(event) => { scramble(); props.onPointerEnter?.(event); }} onFocus={scramble}><span aria-hidden="true">{display}</span><span className="sr-only">{children}</span></a>;
 }
 
 function Tooltip({ label, children }) {
@@ -276,6 +303,13 @@ function HighlightedLine({ text, active }) {
 function EvidenceDrawer({ evidence, chat, onClose }) {
   const matching = useMemo(() => findSourceLines(chat, evidence), [chat, evidence]);
   const matchingSet = new Set(matching);
+  const transcript = useMemo(() => chat.split(/\r?\n/).filter((line) => line.trim()), [chat]);
+  const firstMatchIndex = transcript.findIndex((line) => matchingSet.has(line));
+  const firstMatchRef = useRef(null);
+  useEffect(() => {
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    firstMatchRef.current?.scrollIntoView({ behavior, block: "center" });
+  }, [evidence]);
   return (
     <motion.div className="drawer-backdrop" role="presentation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <motion.aside className="evidence-drawer" aria-labelledby="evidence-title" aria-modal="true" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: .25 }} role="dialog">
@@ -283,8 +317,8 @@ function EvidenceDrawer({ evidence, chat, onClose }) {
         <div className="drawer-query"><Search size={15} /><span>{evidence}</span></div>
         <p className="drawer-note">{matching.length ? `${matching.length} related source line${matching.length === 1 ? "" : "s"} highlighted from the submitted conversation.` : "No matching source line was identified. Full submitted conversation shown for context."}</p>
         <div className="source-transcript">
-          {chat.split(/\r?\n/).filter((line) => line.trim()).map((line, index) => (
-            <div className={`source-line${matchingSet.has(line) ? " source-line-match" : ""}`} key={`${index}-${line}`}>
+          {transcript.map((line, index) => (
+            <div ref={index === firstMatchIndex ? firstMatchRef : null} className={`source-line${matchingSet.has(line) ? " source-line-match" : ""}`} key={`${index}-${line}`}>
               <span>{String(index + 1).padStart(2, "0")}</span><p><HighlightedLine text={line} active={matchingSet.has(line) ? evidence : ""} /></p>
             </div>
           ))}
@@ -357,10 +391,11 @@ function DonutChart({ people }) {
 }
 
 function Dashboard({ result, notice, onToast, onEvidence, onExportJson, onShareImage, onReset, search, setSearch, searchRef, reducedMotion }) {
-  const [actionFilter, setActionFilter] = useState("all");
+  const dashboardRef = useRef(null);
   const [personFilter, setPersonFilter] = useState("all");
   const [topicFilter, setTopicFilter] = useState("all");
   const [completedNext, setCompletedNext] = useState([]);
+  const [actionStatus, setActionStatus] = useState({});
   const q = search.trim().toLowerCase();
   const matches = useCallback((value) => !q || String(value || "").toLowerCase().includes(q), [q]);
   const serialized = (value) => typeof value === "string" ? value : JSON.stringify(value || {});
@@ -391,6 +426,18 @@ function Dashboard({ result, notice, onToast, onEvidence, onExportJson, onShareI
   const healthScore = scoreOf(result.health.score);
   const collaborationScore = scoreOf(result.collaboration.score);
   const filtered = Boolean(q || personFilter !== "all" || topicFilter !== "all");
+
+  useEffect(() => animateDashboard(dashboardRef.current), []);
+
+  useEffect(() => {
+    if (reducedMotion || healthScore === null || healthScore <= 85) return undefined;
+    let cancelled = false;
+    import("canvas-confetti").then(({ default: confetti }) => {
+      if (cancelled) return;
+      confetti({ particleCount: 58, spread: 60, startVelocity: 27, origin: { y: .28 }, colors: ["#caff35", "#48f2ff", "#8c72ff"], disableForReducedMotion: true });
+    }).catch((error) => console.error("Could not load score celebration.", error));
+    return () => { cancelled = true; };
+  }, [healthScore, reducedMotion]);
 
   const copyMarkdown = async () => {
     const lines = [
@@ -423,11 +470,20 @@ function Dashboard({ result, notice, onToast, onEvidence, onExportJson, onShareI
   const cardMotion = { initial: { opacity: 0, y: 12 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: .12 }, transition: { duration: .38, ease: "easeOut" } };
 
   return (
-    <section className="dashboard-shell" id="dashboard" aria-label="Conversation intelligence dashboard">
+    <section className="dashboard-shell" id="dashboard" ref={dashboardRef} aria-label="Conversation intelligence dashboard">
       <div className="dashboard-nav">
         <div className="case-title"><span className="case-live" /><span>CASE FILE</span><b>001</b><span className="case-divider" />{result.source || "ANALYZED CONVERSATION"}</div>
         <nav className="dashboard-tabs" aria-label="Dashboard sections">{NAV_SECTIONS.map(([id, label], index) => <a key={id} href={`#${id}`}><kbd>{index + 1}</kbd>{label}</a>)}</nav>
         <button className="new-case-button" onClick={onReset} type="button"><Plus size={15} /> New case</button>
+      </div>
+
+      <div className="mission-stats" aria-label="Conversation analysis totals">
+        {[
+          ["01", "MESSAGES PARSED", messageCount, "cyan"],
+          ["02", "PARTICIPANTS", result.participant_count ?? result.people.length, "violet"],
+          ["03", "ACTIONS FOUND", result.actions.length, "lime"],
+          ["04", "DECISIONS", result.decisions.length, "pink"],
+        ].map(([index, label, value, tone]) => <div className={`mission-stat stat-${tone}`} key={label}><span>{index} / {label}</span><strong><AnimatedNumber value={value} /></strong><i /></div>)}
       </div>
 
       <div className="dashboard-heading">
@@ -473,21 +529,48 @@ function Dashboard({ result, notice, onToast, onEvidence, onExportJson, onShareI
         <motion.div className="actions-card" id="actions" {...cardMotion}>
           <GlassCard className="actions-panel">
             <div className="card-topline"><div><span className="eyebrow">ACTION ITEMS</span><h3>Owners & next moves</h3></div><Badge tone="indigo">{filteredActions.length} returned</Badge></div>
-            <Tabs label="Filter actions by status" value={actionFilter} onChange={setActionFilter} options={[{ value: "all", label: "All" }, { value: "todo", label: "To do" }, { value: "progress", label: "In progress" }, { value: "done", label: "Done" }]} />
-            <div className="action-list">{filteredActions.filter((action) => actionFilter === "all" || statusGroup(action) === actionFilter).map((action, index) => {
-              const assignee = action?.assignee || "Unassigned";
-              const status = action?.status || "Open";
-              const group = statusGroup(action);
-              const text = textOf(action, "task", "action", "description", "text") || "Action item";
-              return (
-                <button className="action-item" key={`${assignee}-${index}`} onClick={() => onEvidence(text)} type="button">
-                  <span className={`avatar avatar-${index % 6}`}>{assignee.slice(0, 1).toUpperCase()}</span>
-                  <span className="action-detail"><strong>{text}</strong><span>{assignee}</span></span>
-                  {action?.deadline && <Badge tone="cyan">{action.deadline}</Badge>}
-                  <Badge tone={group === "done" ? "emerald" : group === "progress" ? "amber" : "neutral"}>{status}</Badge><ArrowUpRight size={14} className="row-arrow" />
-                </button>
-              );
-            })}{filteredActions.length === 0 && <p className="empty-state">{result.actions.length ? "No actions match these filters." : "No action items were returned."}</p>}</div>
+            <p className="kanban-note">Drag to update this session board · original analyzer response stays unchanged</p>
+            <div className="action-kanban">{[
+              { id: "todo", label: "TO DO" },
+              { id: "progress", label: "IN PROGRESS" },
+              { id: "done", label: "DONE" },
+            ].map((column) => {
+              const columnActions = filteredActions.filter((action) => {
+                const index = result.actions.indexOf(action);
+                return statusGroup({ ...action, status: actionStatus[index] || action.status }) === column.id;
+              });
+              return <section className={`kanban-column kanban-${column.id}`} key={column.id} aria-label={column.label} onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
+                event.preventDefault();
+                const index = Number(event.dataTransfer.getData("text/plain"));
+                if (Number.isInteger(index) && result.actions[index]) {
+                  const status = column.id === "done" ? "Done" : column.id === "progress" ? "In progress" : "Open";
+                  setActionStatus((current) => ({ ...current, [index]: status }));
+                }
+              }}>
+                <header><span><i />{column.label}</span><b>{columnActions.length}</b></header>
+                {columnActions.map((action) => {
+                  const index = result.actions.indexOf(action);
+                  const assignee = action?.assignee || "Unassigned";
+                  const status = actionStatus[index] || action?.status || "Open";
+                  const text = textOf(action, "task", "action", "description", "text") || "Action item";
+                  const group = statusGroup({ ...action, status });
+                  return <article className="kanban-item" draggable key={`${assignee}-${index}`} onDragStart={(event) => { event.dataTransfer.setData("text/plain", String(index)); event.dataTransfer.effectAllowed = "move"; }}>
+                    <button className="action-item" onClick={() => onEvidence(text)} type="button">
+                      <span className={`avatar avatar-${index % 6}`}>{assignee.slice(0, 1).toUpperCase()}</span>
+                      <span className="action-detail"><strong>{text}</strong><span>{assignee}</span></span>
+                      {action?.deadline && <Badge tone="cyan">{action.deadline}</Badge>}
+                      <Badge tone={group === "done" ? "emerald" : group === "progress" ? "amber" : "neutral"}>{status}</Badge><ArrowUpRight size={14} className="row-arrow" />
+                    </button>
+                    <label className="kanban-move"><span className="sr-only">Move {text} to another status</span><select aria-label={`Move ${text} to another status`} value={group} onChange={(event) => {
+                      const value = event.target.value;
+                      const nextStatus = value === "done" ? "Done" : value === "progress" ? "In progress" : "Open";
+                      setActionStatus((current) => ({ ...current, [index]: nextStatus }));
+                    }}><option value="todo">To do</option><option value="progress">In progress</option><option value="done">Done</option></select></label>
+                  </article>;
+                })}
+                {columnActions.length === 0 && <p className="kanban-empty">{filteredActions.length ? "Drop an action here." : result.actions.length ? "No matching actions." : "No actions returned."}</p>}
+              </section>;
+            })}</div>
           </GlassCard>
         </motion.div>
 
@@ -606,6 +689,8 @@ function App() {
   const [search, setSearch] = useState("");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [booted, setBooted] = useState(false);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem("gcd-theme") || "dark"; } catch { return "dark"; }
   });
@@ -615,6 +700,7 @@ function App() {
   const gutterRef = useRef(null);
   const requestLockRef = useRef(false);
   const reducedMotion = useReducedMotion();
+  const completeBoot = useCallback(() => setBooted(true), []);
 
   const setNotice = useCallback((message) => {
     setToast(message);
@@ -624,6 +710,12 @@ function App() {
   useEffect(() => {
     try { localStorage.setItem("gcd-theme", theme); } catch { /* Storage may be unavailable in private contexts. */ }
   }, [theme]);
+
+  useEffect(() => {
+    if (!result) return undefined;
+    const timeout = window.setTimeout(() => scrollPageTo(document.getElementById("dashboard"), reducedMotion), 120);
+    return () => window.clearTimeout(timeout);
+  }, [result, reducedMotion]);
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -652,7 +744,7 @@ function App() {
       }
       if (!isTyping && /^[1-9]$/.test(event.key)) {
         const section = NAV_SECTIONS[Number(event.key) - 1];
-        if (section) document.getElementById(section[0])?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+        if (section) scrollPageTo(document.getElementById(section[0]), reducedMotion);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -664,7 +756,8 @@ function App() {
   const format = detectedFormat(chat);
 
   const focusWorkspace = useCallback(() => {
-    document.getElementById("workspace")?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" });
+    window.dispatchEvent(new Event("gcd:organize"));
+    scrollPageTo(document.getElementById("workspace"), reducedMotion);
     window.setTimeout(() => textAreaRef.current?.focus(), reducedMotion ? 0 : 400);
   }, [reducedMotion]);
 
@@ -706,6 +799,7 @@ function App() {
       return;
     }
     if (requestLockRef.current) return;
+    window.dispatchEvent(new Event("gcd:organize"));
     requestLockRef.current = true;
     const startedAt = monotonicNow();
     setChat(text);
@@ -732,11 +826,6 @@ function App() {
       const remaining = MIN_DECODING_MS - (monotonicNow() - startedAt);
       if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining));
       setResult(normalized);
-      if (!reducedMotion) {
-        window.setTimeout(() => document.getElementById("dashboard")?.scrollIntoView({ behavior: "smooth", block: "start" }), 90);
-      } else {
-        document.getElementById("dashboard")?.scrollIntoView({ behavior: "auto", block: "start" });
-      }
     } catch (requestError) {
       setCanRetry(true);
       setError(requestError instanceof Error
@@ -841,21 +930,23 @@ function App() {
     { title: "Show keyboard shortcuts", hint: "Open help", icon: <HelpCircle size={16} />, run: () => setHelpOpen(true) },
     { title: "Toggle appearance", hint: "Switch dark / light", icon: theme === "dark" ? <Sun size={16} /> : <Moon size={16} />, run: () => setTheme((value) => value === "dark" ? "light" : "dark") },
     ...DEMOS.map((demo) => ({ title: `Run ${demo.label} demo`, hint: "Analyze sample conversation", icon: <Zap size={16} />, run: () => startDemo(demo) })),
-    ...NAV_SECTIONS.map(([id, label], index) => ({ title: `Go to ${label}`, hint: `Jump to section ${index + 1}`, icon: <ArrowRight size={16} />, run: () => document.getElementById(id)?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" }) })),
+    ...NAV_SECTIONS.map(([id, label], index) => ({ title: `Go to ${label}`, hint: `Jump to section ${index + 1}`, icon: <ArrowRight size={16} />, run: () => scrollPageTo(document.getElementById(id), reducedMotion) })),
   ];
 
   return (
-    <div className={`app-shell theme-${theme}`} onPointerMove={(event) => {
+    <div className={`app-shell theme-${theme}${isDraggingFile ? " is-file-dragging" : ""}`} onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); setIsDraggingFile(true); } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setIsDraggingFile(false); }} onDrop={(event) => { if (event.dataTransfer.files?.length) { event.preventDefault(); setIsDraggingFile(false); loadFile(event.dataTransfer.files[0]); } }} onPointerMove={(event) => {
       if (event.pointerType !== "mouse" || window.innerWidth < 760) return;
       event.currentTarget.style.setProperty("--cursor-x", `${event.clientX}px`);
       event.currentTarget.style.setProperty("--cursor-y", `${event.clientY}px`);
     }}>
+      <PageSystems />
       <div className="ambient" aria-hidden="true"><span /><span /><span /></div>
       <div className="grid-noise" aria-hidden="true" />
+      {isDraggingFile && <div className="drop-fullscreen" aria-live="polite"><Upload size={34} /><span>DROP TO DECODE</span><small>TXT / CSV // RELEASE TO LOAD THE CHAT</small></div>}
       <header className="topbar">
         <a className="brand" href="#" aria-label="GroupChat Decoder home"><span className="brand-mark"><Fingerprint size={19} /></span><span>groupchat<span>decoder</span></span><Badge tone="indigo">BETA</Badge></a>
-        <nav className="top-nav" aria-label="Primary navigation"><a className={!result ? "active" : ""} href="#workspace">Decoder</a><a className={result ? "active" : ""} href={result ? "#dashboard" : "#scenarios"}>Intelligence</a></nav>
-        <div className="top-actions"><span className="service-status"><i /> ENGINE READY</span><Tooltip label={`Switch to ${theme === "dark" ? "light" : "dark"} appearance`}><button className="icon-button theme-toggle" title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} onClick={() => setTheme((value) => value === "dark" ? "light" : "dark")} type="button">{theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}</button></Tooltip><button className="command-trigger" onClick={() => setPaletteOpen(true)} type="button"><Command size={14} /><span>Command</span><kbd>⌘ K</kbd></button></div>
+        <nav className="top-nav" aria-label="Primary navigation"><ScrambleLink label="DECODER" className={!result ? "active" : ""} href="#workspace">Decoder</ScrambleLink><ScrambleLink label="INTELLIGENCE" className={result ? "active" : ""} href={result ? "#dashboard" : "#scenarios"}>Intelligence</ScrambleLink></nav>
+        <div className="top-actions"><span className="service-status"><i /> ENGINE READY</span><SoundToggle /><Tooltip label={`Switch to ${theme === "dark" ? "light" : "dark"} appearance`}><button className="icon-button theme-toggle" title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} onClick={() => setTheme((value) => value === "dark" ? "light" : "dark")} type="button">{theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}</button></Tooltip><button className="command-trigger" onClick={() => setPaletteOpen(true)} type="button"><Command size={14} /><span>Command</span><kbd>⌘ K</kbd></button></div>
       </header>
 
       <main className="page-shell">
@@ -864,23 +955,25 @@ function App() {
             <span className="eyebrow hero-kicker"><span className="live-dot" /> CONVERSATION INTELLIGENCE / 001</span>
             <ScrambleHeading reducedMotion={reducedMotion} />
             <p>Turn the chaos of your group chat into a clear read on <strong>who’s doing what</strong> and what happens next.</p>
-            <div className="hero-cta-row"><GradientButton onClick={focusWorkspace} type="button">Decode a chat <ArrowRight size={17} /></GradientButton><button className="secondary-button" onClick={() => startDemo(DEMOS[2])} type="button"><Zap size={15} /> Try Judge Demo</button></div>
+            <div className="hero-cta-row"><GradientButton onClick={focusWorkspace} type="button">DECODE A CHAT <ArrowRight size={17} /></GradientButton><button className="secondary-button" onClick={() => startDemo(DEMOS[2])} type="button"><Zap size={15} /> JUDGE DEMO</button></div>
+            <div className="hero-demo-chips" aria-label="One-click demo scenarios">{DEMOS.map((demo) => <button className="hero-demo-chip" disabled={isAnalyzing} key={demo.id} onClick={() => startDemo(demo)} type="button">{demo.label}<ArrowUpRight size={12} /></button>)}</div>
             <div className="hero-meta"><span>STRUCTURED SIGNALS</span><i /> <span>ONE DECODE</span><i /> <span>NO MADE-UP RECEIPTS</span></div>
             <p className="privacy-copy"><ShieldCheck size={14} /> Your conversation is sent to the configured analysis service to generate this report.</p>
           </div>
-          <div className="hero-visual" aria-label="Conversation messages being structured into insights">
-            <div className="visual-top"><span><i /> LIVE DECODER</span><span>ILLUSTRATIVE / CHAT → SIGNAL</span></div>
-            <div className="visual-chat">
-              <motion.div className="visual-message message-left" animate={reducedMotion ? {} : { x: [0, 7, 0], opacity: [.72, 1, .72] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}><small>11:42 PM · MAYA</small><span>“are we actually doing this?”</span></motion.div>
-              <motion.div className="visual-message message-right" animate={reducedMotion ? {} : { x: [0, -7, 0], opacity: [.8, 1, .8] }} transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: .4 }}><small>11:43 PM · JULES</small><span>“I already booked it btw”</span></motion.div>
-              <div className="scanner-beam" />
-              <div className="scanner-ring"><ScanSearch size={23} /></div>
-            </div>
-            <div className="visual-output"><span className="output-title">STRUCTURED INTELLIGENCE</span><div><Badge tone="cyan">ACTION</Badge><span>Venue booked</span></div><div><Badge tone="violet">DECISION</Badge><span>Plan confirmed</span></div><div><Badge tone="rose">OPEN LOOP</Badge><span>Attendance unknown</span></div></div>
-            <div className="visual-footer"><span>PARSE / CLASSIFY / CLARIFY</span><span><Activity size={13} /> READY</span></div>
+          <div className="hero-visual" aria-label="Illustrative WebGL scene of scattered conversation signals organizing into insight cards">
+            <Suspense fallback={<div className="particle-loading" aria-hidden="true" /> }><ParticleField /></Suspense>
+            <div className="hero-visual-hud"><span><i /> FIELD SCAN / ACTIVE</span><span>ILLUSTRATIVE // SYS.DECODE v1.0</span></div>
+            <div className="particle-chat-fragment fragment-a"><small>RAW SIGNAL / 008</small><span>“wait who owns this?”</span></div>
+            <div className="particle-chat-fragment fragment-b"><small>RAW SIGNAL / 021</small><span>“friday works for me”</span></div>
+            <div className="particle-intel-card intel-action"><span>01 / ACTION</span><b>Owner located</b><i /></div>
+            <div className="particle-intel-card intel-decision"><span>02 / DECISION</span><b>Signal resolved</b><i /></div>
+            <div className="particle-intel-card intel-open"><span>03 / OPEN LOOP</span><b>Thread still open</b><i /></div>
+            <div className="hero-visual-footer"><span>SCATTER <i /> DETECT <i /> ORGANIZE</span><span>2,600 FIELD NODES</span><LiveClock /></div>
           </div>
           <div className="hero-stats"><div><strong>01</strong><span>CONVERSATION</span></div><ArrowRight size={15} /><div><strong>02</strong><span>DECODER</span></div><ArrowRight size={15} /><div><strong>03</strong><span>STRUCTURED INTELLIGENCE</span></div><ArrowRight size={15} /><div><strong>04</strong><span>ACTION</span></div></div>
         </section>
+
+        <StorySections onDecode={focusWorkspace} onDemo={startDemo} demos={DEMOS} />
 
         <section className="scenario-section" id="scenarios" aria-labelledby="scenario-title">
           <div className="section-heading compact-heading"><div><span className="eyebrow">JUDGE DEMO MODE</span><h2 id="scenario-title">One click. Real analysis.</h2></div><span>Pick a sample to run through the same analyzer.</span></div>
@@ -890,7 +983,7 @@ function App() {
         <section className="workspace-section" id="workspace" aria-labelledby="workspace-title">
           <div className="section-heading workspace-heading"><div><span className="eyebrow"><span className="live-dot" /> DECODER STUDIO / INPUT 01</span><h2 id="workspace-title">Bring the <em>conversation.</em></h2></div><p>Paste a message dump or import a plain-text / CSV export. The analyzer returns the structured findings shown in your report.</p></div>
           <div className="workspace-grid">
-            <GlassCard className={`editor-panel${isDragging ? " is-dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setIsDragging(true); }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setIsDragging(false); }} onDrop={(event) => { event.preventDefault(); setIsDragging(false); loadFile(event.dataTransfer.files?.[0]); }}>
+            <GlassCard className={`editor-panel${isDragging ? " is-dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setIsDragging(true); }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setIsDragging(false); }} onDrop={(event) => { event.preventDefault(); event.stopPropagation(); setIsDragging(false); loadFile(event.dataTransfer.files?.[0]); }}>
               <div className="editor-header"><div><span className="editor-led" /><span>CONVERSATION INPUT</span><Badge tone="emerald">PRIVATE CASE</Badge></div><span className="format-badge"><FileText size={13} /> {format}</span></div>
               <div className="editor-body"><div ref={gutterRef} className="line-numbers" aria-hidden="true">{Array.from({ length: Math.max(8, lineCount) }, (_, index) => <span key={index}>{String(index + 1).padStart(2, "0")}</span>)}</div><textarea ref={textAreaRef} aria-label="Conversation text" value={chat} onChange={(event) => updateChat(event.target.value)} onScroll={(event) => { if (gutterRef.current) gutterRef.current.scrollTop = event.target.scrollTop; }} placeholder={"Paste your group chat here…\n\nMia: are we still on for tonight?\nJules: booked the table already\nAri: wait, what time?"} spellCheck="false" /></div>
               {!chat && <div className="editor-drop-hint"><Upload size={14} /> DROP A .TXT OR .CSV FILE</div>}
@@ -912,13 +1005,16 @@ function App() {
       <CommandPalette key={paletteOpen ? "palette-open" : "palette-closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
       <AnimatePresence>{helpOpen && <Modal title="Keyboard shortcuts" onClose={() => setHelpOpen(false)}><div className="shortcut-list"><span><kbd>/</kbd> Search this report</span><span><kbd>⌘ K</kbd> Open command palette</span><span><kbd>1–9</kbd> Jump to a dashboard section</span><span><kbd>?</kbd> Show this help</span><span><kbd>ESC</kbd> Close dialog or evidence</span></div></Modal>}</AnimatePresence>
       <Toast message={toast && !result ? toast : ""} onDismiss={() => setToast("")} />
+      {!booted && <BootSequence onComplete={completeBoot} />}
     </div>
   );
 }
 
 function ScrambleHeading({ reducedMotion }) {
   const finalText = "Turn group chat chaos into clarity.";
-  const [text, setText] = useState(reducedMotion ? finalText : "Turn group chat chaos into clarity.");
+  const [text, setText] = useState(reducedMotion
+    ? finalText
+    : finalText.replace(/[A-Za-z0-9]/g, (character) => character === character.toUpperCase() ? "X" : "x"));
   useEffect(() => {
     if (reducedMotion) return undefined;
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -938,7 +1034,7 @@ function ScrambleHeading({ reducedMotion }) {
     }, 42);
     return () => window.clearInterval(interval);
   }, [reducedMotion]);
-  return <h1 id="hero-title" aria-label={finalText}>{text.split(" ").map((word, index) => <span className={index >= 4 ? "headline-accent" : ""} key={`${index}-${word}`}>{word}{index < 5 ? " " : ""}</span>)}</h1>;
+  return <h1 id="hero-title" aria-label={finalText}>{text.split(" ").map((word, index) => <span className={`${index === 3 ? "headline-chaos" : ""} ${index === 5 ? "headline-accent" : ""}`.trim()} key={index}>{Array.from(word, (letter, letterIndex) => <span className="headline-letter" key={letterIndex}>{letter}</span>)}{index < 5 ? " " : ""}</span>)}</h1>;
 }
 
 export default App;
