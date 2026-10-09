@@ -1,14 +1,35 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowDownToLine,
+  ArrowRight,
+  ArrowUpRight,
+  AudioLines,
+  Check,
+  ChevronDown,
+  CircleAlert,
+  Clipboard,
+  FileText,
+  Fingerprint,
+  Hash,
+  Layers3,
+  LoaderCircle,
+  MessageSquareText,
+  RotateCcw,
+  ScanSearch,
+  ShieldCheck,
+  Sparkles,
+  Upload,
+  Users,
+  X,
+  Zap,
+} from "lucide-react";
 
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
-const DEMOS = {
-  project: {
+const DEMOS = [
+  {
     id: "project",
-    label: "Project Team",
-    icon: "⌁",
-    description: "A software project coordination chat",
+    label: "Project team",
     text: `Aarav: We need to finish the authentication module this week.
 Priya: I'll handle the frontend login screens.
 Rohan: I'll take the backend authentication API.
@@ -22,12 +43,9 @@ Priya: I'll also add loading and error states.
 Meera: I'll test the complete login flow once both pieces are merged.
 Aarav: Perfect. Let's review everything Friday evening.`,
   },
-
-  event: {
+  {
     id: "event",
-    label: "Event Planning",
-    icon: "✦",
-    description: "A team organizing a college event",
+    label: "Event planning",
     text: `Tanvi: We need to finalize the event plan today.
 Kabir: I'll handle the auditorium booking.
 Ananya: I'll design the poster and social media announcement.
@@ -41,12 +59,9 @@ Kabir: I'll contact the vendor tomorrow.
 Ananya: I'll send the first poster draft by Wednesday.
 Tanvi: Great. Let's review everything on Thursday.`,
   },
-
-  hackathon: {
+  {
     id: "hackathon",
-    label: "Hackathon Team",
-    icon: "⚡",
-    description: "A fast-moving team preparing a hackathon project",
+    label: "Hackathon crew",
     text: `Tanisha: We need to lock our hackathon idea tonight.
 Arjun: I think the group chat intelligence idea is strong.
 Meera: Agreed. We can turn messy chats into actions and decisions.
@@ -66,1870 +81,654 @@ Meera: I'll test the full flow before the presentation.
 Kabir: Backend is ready for integration.
 Tanisha: Perfect. We have a plan.`,
   },
-};
-
-const EMPTY_RESULT = {
-  summary: "",
-  tone: {
-    label: "Neutral",
-    score: 50,
-    description: "No analysis yet.",
-  },
-  collaboration: {
-    score: 0,
-    label: "Not analyzed",
-    description: "Analyze a conversation to generate collaboration insights.",
-  },
-  conversation_health: {
-    score: 0,
-    label: "Not analyzed",
-    description: "Conversation health will appear here after analysis.",
-  },
-  topics: [],
-  action_items: [],
-  people: [],
-  decisions: [],
-  unresolved_questions: [],
-  timeline: [],
-  key_messages: [],
-  risks: [],
-  signals: [],
-  insight: "",
-  most_active_participant: "",
-  privacy_note: "",
-  counts: {
-    actions: 0,
-    decisions: 0,
-    people: 0,
-    topics: 0,
-    unresolved: 0,
-    signals: 0,
-  },
-};
-
-const ANALYSIS_STAGES = [
-  {
-    title: "Reading conversation",
-    detail: "Understanding messages and context",
-  },
-  {
-    title: "Finding decisions",
-    detail: "Detecting agreements and commitments",
-  },
-  {
-    title: "Extracting actions",
-    detail: "Identifying tasks, owners and deadlines",
-  },
-  {
-    title: "Mapping participants",
-    detail: "Understanding people and responsibilities",
-  },
-  {
-    title: "Building intelligence",
-    detail: "Generating signals and conversation health",
-  },
 ];
 
 function normalizeResult(raw) {
-  if (!raw || typeof raw !== "object") {
-    return { ...EMPTY_RESULT };
-  }
+  const topics = Array.isArray(raw.topics) ? raw.topics : [];
+  const actions = Array.isArray(raw.actions)
+    ? raw.actions
+    : Array.isArray(raw.action_items)
+      ? raw.action_items
+      : [];
+  const people = Array.isArray(raw.people) ? raw.people : [];
+  const decisions = Array.isArray(raw.decisions) ? raw.decisions : [];
+  const questions = Array.isArray(raw.unresolved_questions)
+    ? raw.unresolved_questions
+    : [];
+  const timeline = Array.isArray(raw.timeline) ? raw.timeline : [];
+  const keyMessages = Array.isArray(raw.key_messages)
+    ? raw.key_messages
+    : [];
+  const risks = Array.isArray(raw.risks) ? raw.risks : [];
+  const tone = raw.tone && typeof raw.tone === "object" ? raw.tone : {};
+  const health = raw.health || raw.conversation_health || {};
+  const collaboration = raw.collaboration || {};
+  const counts = raw.counts || {};
 
   return {
-    ...EMPTY_RESULT,
     ...raw,
-    tone: {
-      ...EMPTY_RESULT.tone,
-      ...(raw.tone || {}),
-    },
-    collaboration: {
-      ...EMPTY_RESULT.collaboration,
-      ...(raw.collaboration || {}),
-    },
-    conversation_health: {
-      ...EMPTY_RESULT.conversation_health,
-      ...(raw.conversation_health || {}),
-    },
-    counts: {
-      ...EMPTY_RESULT.counts,
-      ...(raw.counts || {}),
-    },
-    topics: Array.isArray(raw.topics) ? raw.topics : [],
-    action_items: Array.isArray(raw.action_items)
-      ? raw.action_items
-      : [],
-    people: Array.isArray(raw.people) ? raw.people : [],
-    decisions: Array.isArray(raw.decisions) ? raw.decisions : [],
-    unresolved_questions: Array.isArray(raw.unresolved_questions)
-      ? raw.unresolved_questions
-      : [],
-    timeline: Array.isArray(raw.timeline) ? raw.timeline : [],
-    key_messages: Array.isArray(raw.key_messages)
-      ? raw.key_messages
-      : [],
-    risks: Array.isArray(raw.risks) ? raw.risks : [],
-    signals: Array.isArray(raw.signals) ? raw.signals : [],
+    topics,
+    actions,
+    people,
+    decisions,
+    questions,
+    timeline,
+    keyMessages,
+    risks,
+    tone,
+    health,
+    collaboration,
+    actionCount: countOr(counts.actions, actions.length),
+    decisionCount: countOr(counts.decisions, decisions.length),
+    participantCount: countOr(raw.participant_count, people.length),
+    messageCount: countOr(raw.message_count, null),
   };
 }
 
-function safeText(value, fallback = "") {
-  if (value === null || value === undefined) return fallback;
-  if (typeof value === "string") return value;
-  return String(value);
-}
-
-function getPersonName(person) {
-  if (typeof person === "string") return person;
-
-  return (
-    person?.name ||
-    person?.person ||
-    person?.participant ||
-    person?.author ||
-    "Unknown"
-  );
-}
-
-function getActionText(action) {
-  if (typeof action === "string") return action;
-
-  return (
-    action?.task ||
-    action?.action ||
-    action?.description ||
-    action?.text ||
-    "Action item"
-  );
-}
-
-function getDecisionText(decision) {
-  if (typeof decision === "string") return decision;
-
-  return (
-    decision?.decision ||
-    decision?.description ||
-    decision?.text ||
-    "Decision"
-  );
-}
-
-function getTopicText(topic) {
-  if (typeof topic === "string") return topic;
-
-  return topic?.name || topic?.topic || topic?.label || "Topic";
-}
-
-function scoreValue(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return 0;
-
-  return Math.max(0, Math.min(100, Math.round(number)));
-}
-
-function localAnalyze(text) {
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const participants = [];
-
-  for (const line of lines) {
-    const match = line.match(/^([^:]{1,40}):/);
-
-    if (match && !participants.includes(match[1].trim())) {
-      participants.push(match[1].trim());
+function textOf(item, ...keys) {
+  if (typeof item === "string") return item;
+  if (!item || typeof item !== "object") return "";
+  for (const key of keys) {
+    if (item[key] !== undefined && item[key] !== null) {
+      return String(item[key]);
     }
   }
-
-  const lower = text.toLowerCase();
-
-  const decisions = [];
-  const actions = [];
-  const unresolved = [];
-  const signals = [];
-
-  lines.forEach((line) => {
-    const low = line.toLowerCase();
-
-    if (
-      low.includes("agreed") ||
-      low.includes("let's use") ||
-      low.includes("lets use") ||
-      low.includes("we'll use") ||
-      low.includes("decision")
-    ) {
-      decisions.push({
-        decision: line.replace(/^[^:]{1,40}:\s*/, ""),
-        owner: line.match(/^([^:]{1,40}):/)?.[1] || "",
-      });
-    }
-
-    if (
-      low.includes("i'll") ||
-      low.includes("i will") ||
-      low.includes("i’m") ||
-      low.includes("im going to") ||
-      low.includes("i'm going to")
-    ) {
-      actions.push({
-        task: line.replace(/^[^:]{1,40}:\s*/, ""),
-        assignee: line.match(/^([^:]{1,40}):/)?.[1] || "",
-        status: "pending",
-      });
-    }
-
-    if (
-      line.includes("?") &&
-      !low.startsWith("should we")
-    ) {
-      unresolved.push(line.replace(/^[^:]{1,40}:\s*/, ""));
-    }
-  });
-
-  const questionCount = (text.match(/\?/g) || []).length;
-
-  if (questionCount > 0) {
-    signals.push({
-      type: "open_questions",
-      label: `${questionCount} question${
-        questionCount === 1 ? "" : "s"
-      } detected`,
-      severity: questionCount > 2 ? "medium" : "low",
-      description:
-        "Questions may need explicit resolution before the team can move forward.",
-    });
-  }
-
-  if (actions.length > 0) {
-    signals.push({
-      type: "action_density",
-      label: "Action-oriented conversation",
-      severity: "low",
-      description:
-        "The conversation contains concrete commitments and next steps.",
-    });
-  }
-
-  if (decisions.length > 0) {
-    signals.push({
-      type: "decision",
-      label: "Decisions detected",
-      severity: "low",
-      description:
-        "The team appears to be converting discussion into concrete decisions.",
-    });
-  }
-
-  const summary =
-    participants.length > 0
-      ? `The conversation involves ${participants.length} participant${
-          participants.length === 1 ? "" : "s"
-        } and contains ${actions.length} apparent action item${
-          actions.length === 1 ? "" : "s"
-        }, ${decisions.length} decision${
-          decisions.length === 1 ? "" : "s"
-        }, and ${questionCount} question${
-          questionCount === 1 ? "" : "s"
-        }.`
-      : "The conversation contains several discussion points that can be organized into actions, decisions and signals.";
-
-  const collaborationScore = Math.min(
-    96,
-    55 +
-      participants.length * 5 +
-      actions.length * 4 +
-      decisions.length * 4
-  );
-
-  const healthScore = Math.min(
-    96,
-    60 +
-      decisions.length * 7 +
-      actions.length * 5 -
-      unresolved.length * 3
-  );
-
-  return normalizeResult({
-    summary,
-    tone: {
-      label:
-        decisions.length + actions.length > questionCount
-          ? "Constructive"
-          : "Mixed",
-      score: Math.min(
-        95,
-        55 + decisions.length * 5 + actions.length * 3
-      ),
-      description:
-        "The conversation shows a mix of discussion, coordination and concrete next steps.",
-    },
-    collaboration: {
-      score: collaborationScore,
-      label:
-        collaborationScore >= 80
-          ? "Strong collaboration"
-          : "Developing collaboration",
-      description:
-        "Participants are contributing ideas and moving toward concrete outcomes.",
-    },
-    conversation_health: {
-      score: healthScore,
-      label:
-        healthScore >= 80
-          ? "Healthy"
-          : healthScore >= 65
-            ? "Mostly healthy"
-            : "Needs attention",
-      description:
-        unresolved.length > 0
-          ? "The conversation has useful progress, with some unresolved questions remaining."
-          : "The conversation shows clear progress with relatively few unresolved issues.",
-    },
-    topics: [
-      ...new Set(
-        [
-          lower.includes("backend") ? "Backend" : null,
-          lower.includes("frontend") ? "Frontend" : null,
-          lower.includes("api") ? "API" : null,
-          lower.includes("hackathon") ? "Hackathon" : null,
-          lower.includes("project") ? "Project" : null,
-          lower.includes("event") ? "Event planning" : null,
-          lower.includes("deadline") ||
-          lower.includes("friday") ||
-          lower.includes("thursday")
-            ? "Deadlines"
-            : null,
-        ].filter(Boolean)
-      ),
-    ],
-    action_items: actions,
-    people: participants.map((name, index) => ({
-      name,
-      role: index === 0 ? "Coordinator" : "Participant",
-      messages: lines.filter((line) =>
-        line.startsWith(`${name}:`)
-      ).length,
-    })),
-    decisions,
-    unresolved_questions: unresolved,
-    timeline: lines.slice(-6).map((message, index) => ({
-      title: `Conversation event ${index + 1}`,
-      description: message,
-    })),
-    key_messages: lines.slice(0, 5),
-    risks:
-      unresolved.length > 0
-        ? [
-            {
-              label: "Unresolved questions",
-              severity: "medium",
-              description:
-                "Some questions may need explicit answers before execution.",
-            },
-          ]
-        : [],
-    signals,
-    insight:
-      actions.length > 0 && decisions.length > 0
-        ? "This conversation is moving beyond discussion into execution: people are taking ownership while the team records decisions."
-        : "The conversation contains useful coordination signals that can be structured into clearer next steps.",
-    most_active_participant:
-      participants[0] || "No participant detected",
-    privacy_note:
-      "Local analysis is available without requiring an external AI API.",
-    counts: {
-      actions: actions.length,
-      decisions: decisions.length,
-      people: participants.length,
-      topics: [
-        ...new Set(
-          [
-            lower.includes("backend") ? "Backend" : null,
-            lower.includes("frontend") ? "Frontend" : null,
-            lower.includes("api") ? "API" : null,
-            lower.includes("hackathon") ? "Hackathon" : null,
-            lower.includes("project") ? "Project" : null,
-            lower.includes("event") ? "Event planning" : null,
-          ].filter(Boolean)
-        ),
-      ].length,
-      unresolved: unresolved.length,
-      signals: signals.length,
-    },
-  });
+  return "";
 }
 
-function Toast({ toast }) {
-  if (!toast) return null;
+function scoreOf(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const score = Number(value);
+  return Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : null;
+}
 
+function countOr(value, fallback) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const count = Number(value);
+  return Number.isFinite(count) ? count : fallback;
+}
+
+function SectionLabel({ children, accent = false }) {
+  return <span className={`section-label${accent ? " label-accent" : ""}`}>{children}</span>;
+}
+
+function Logo({ onClick }) {
   return (
-    <div className="toast" role="status">
-      <span className="toast-icon">
-        {toast.type === "error" ? "!" : "✓"}
+    <button className="brand" onClick={onClick} type="button" aria-label="Groupchat Decoder home">
+      <span className="brand-symbol"><Fingerprint size={18} strokeWidth={1.8} /></span>
+      <span className="brand-lockup">
+        <span className="brand-name">groupchat<span>decoder</span></span>
+        <span className="brand-descriptor">SOCIAL INTELLIGENCE</span>
       </span>
+      <span className="brand-period">®</span>
+    </button>
+  );
+}
 
-      <div>
-        <strong>{toast.title}</strong>
-        {toast.message && <span>{toast.message}</span>}
+function EmptySignal({ children }) {
+  return (
+    <div className="empty-signal">
+      <span className="empty-signal-mark">—</span>
+      <p>{children}</p>
+    </div>
+  );
+}
+
+function Report({ result, notice, error, onCopy, onExport, onDecodeAnother }) {
+  const maxMessages = Math.max(
+    1,
+    ...result.people.map((person) => Number(person?.messages) || 0),
+  );
+  const maxTopicMentions = Math.max(
+    1,
+    ...result.topics.map((topic) => Number(topic?.mentions) || 0),
+  );
+  const hasMessageCounts = result.people.some(
+    (person) => person?.messages !== undefined
+      && person?.messages !== null
+      && Number.isFinite(Number(person.messages)),
+  );
+
+  return (
+    <section className="report-section" id="report" aria-labelledby="report-title">
+      <div className="report-topline">
+        <div className="case-label-group">
+          <SectionLabel accent>CASE FILE 001</SectionLabel>
+          {result.source && <span className="case-source">SOURCE / {result.source}</span>}
+        </div>
+        <div className="report-tools">
+          <button className="text-button" type="button" onClick={onCopy} disabled={!result.summary}>
+            <Clipboard size={15} /> Copy summary
+          </button>
+          <button className="text-button" type="button" onClick={onExport}>
+            <ArrowDownToLine size={15} /> Export JSON
+          </button>
+          <button className="text-button" type="button" onClick={onDecodeAnother}>
+            <RotateCcw size={15} /> New case
+          </button>
+        </div>
       </div>
-    </div>
-  );
-}
+      {(notice || error) && (
+        <div className={`report-feedback${error ? " report-feedback-error" : ""}`} role={error ? "alert" : "status"}>
+          {error ? <CircleAlert size={14} /> : <Check size={14} />}
+          <span>{error || notice}</span>
+        </div>
+      )}
 
-function SectionTitle({ eyebrow, title, description }) {
-  return (
-    <div className="section-title">
-      {eyebrow && <span className="eyebrow">{eyebrow}</span>}
-      <h2>{title}</h2>
-      {description && <p>{description}</p>}
-    </div>
-  );
-}
-
-function ScoreRing({ score = 0, label, small = false }) {
-  const safeScore = scoreValue(score);
-
-  return (
-    <div
-      className={`score-ring ${small ? "score-ring-small" : ""}`}
-      style={{
-        "--score": `${safeScore * 3.6}deg`,
-      }}
-    >
-      <div className="score-ring-inner">
-        <strong>{safeScore}</strong>
-        {label && <span>{label}</span>}
-      </div>
-    </div>
-  );
-}
-
-function MetricCard({ icon, label, value, detail }) {
-  return (
-    <div className="metric-card interactive-card">
-      <div className="metric-top">
-        <span className="metric-icon">{icon}</span>
-        <span className="metric-label">{label}</span>
+      <div className="report-heading">
+        <div>
+          <p className="micro-label">CHAT UNDER REVIEW</p>
+          <h2 id="report-title">Here’s what <em>actually</em> happened.</h2>
+        </div>
+        <div className="case-stamp"><ScanSearch size={17} /><span>DECODED<br />NOT DISTORTED</span></div>
       </div>
 
-      <strong className="metric-value">{value}</strong>
+      <div className="verdict-card">
+        <div className="verdict-main">
+          <SectionLabel accent>THE VERDICT / 01</SectionLabel>
+          <p className="verdict-summary">{result.summary || "No summary was returned by the analyzer."}</p>
+          {result.insight && <p className="verdict-insight"><Sparkles size={15} />{result.insight}</p>}
+          {result.privacy_note && <p className="privacy-note"><ShieldCheck size={14} />{result.privacy_note}</p>}
+        </div>
+        <div className="verdict-stats">
+          <div className="verdict-stat"><strong>{result.messageCount ?? "—"}</strong><span>MESSAGES</span></div>
+          <div className="verdict-stat"><strong>{result.participantCount}</strong><span>PEOPLE</span></div>
+          <div className="verdict-stat"><strong>{result.actionCount}</strong><span>ACTIONS</span></div>
+        </div>
+      </div>
 
-      {detail && <span className="metric-detail">{detail}</span>}
-    </div>
-  );
-}
-
-function EmptyState({ icon = "○", title, description }) {
-  return (
-    <div className="empty-state">
-      <div className="empty-icon">{icon}</div>
-      <strong>{title}</strong>
-      <p>{description}</p>
-    </div>
-  );
-}
-
-function Overview({ result }) {
-  const topics = result.topics || [];
-  const counts = result.counts || {};
-
-  return (
-    <div className="dashboard-content dashboard-overview">
-      <div className="overview-grid">
-        <div className="summary-card primary-card">
-          <div className="card-heading">
-            <span className="card-icon">✦</span>
-            <div>
-              <span className="card-eyebrow">EXECUTIVE SUMMARY</span>
-              <h3>What happened?</h3>
-            </div>
+      <div className="report-grid">
+        <article className="report-card group-vibe">
+          <div className="card-topline">
+            <SectionLabel>02 / GROUP VIBE</SectionLabel>
+            <AudioLines size={19} className="pink-icon" />
           </div>
-
-          <p className="summary-text">
-            {result.summary ||
-              "No summary was generated for this conversation."}
-          </p>
-
-          {result.insight && (
-            <div className="insight-callout">
-              <span>◈</span>
-              <div>
-                <strong>Decoder insight</strong>
-                <p>{result.insight}</p>
-              </div>
+          <h3>{result.tone.label || "Tone not available"}</h3>
+          <p>{result.tone.explanation || result.tone.description || "No tone explanation was provided."}</p>
+          {scoreOf(result.tone.score) !== null && (
+            <div className="meter-wrap">
+              <div className="meter-label"><span>TONE SIGNAL</span><strong>{scoreOf(result.tone.score)}%</strong></div>
+              <div className="meter-track"><span style={{ width: `${scoreOf(result.tone.score)}%` }} /></div>
             </div>
           )}
-        </div>
+        </article>
 
-        <div className="health-card">
-          <div className="card-heading">
-            <span className="card-icon">◉</span>
-            <div>
-              <span className="card-eyebrow">CONVERSATION HEALTH</span>
-              <h3>
-                {result.conversation_health?.label ||
-                  "Not analyzed"}
-              </h3>
+        <article className="report-card cast-card">
+          <div className="card-topline">
+            <SectionLabel>03 / THE SOCIAL CAST</SectionLabel>
+            <Users size={19} className="lime-icon" />
+          </div>
+          {result.people.length ? (
+            <div className="cast-list">
+              {result.people.map((person, index) => {
+                const name = textOf(person, "name", "person") || "Unknown";
+                const hasCount = person?.messages !== undefined
+                  && person?.messages !== null
+                  && Number.isFinite(Number(person.messages));
+                const messageCount = hasCount ? Number(person.messages) : 0;
+                return (
+                  <div className="cast-person" key={`${name}-${index}`}>
+                    <span className={`cast-avatar avatar-${index % 4}`}>{name.charAt(0).toUpperCase()}</span>
+                    <div className="cast-person-info">
+                      <div className="cast-name-row">
+                        <strong>{name}</strong>
+                        {person?.role && <span>{person.role}</span>}
+                      </div>
+                      {hasMessageCounts && hasCount && (
+                        <div className="contribution-row">
+                          <div className="contribution-track"><span style={{ width: `${Math.max(5, messageCount / maxMessages * 100)}%` }} /></div>
+                          <small>{messageCount} msg{messageCount === 1 ? "" : "s"}</small>
+                          {Number.isFinite(Number(person.share)) && <small className="contribution-share">{person.share}%</small>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : <EmptySignal>No participants were identified in this chat.</EmptySignal>}
+          {result.most_active?.name && (
+            <p className="active-note">Most active · <strong>{result.most_active.name}</strong></p>
+          )}
+        </article>
+
+        <article className="report-card lore-card">
+          <div className="card-topline">
+            <SectionLabel>04 / THE EVIDENCE</SectionLabel>
+            <Hash size={19} className="violet-icon" />
+          </div>
+          {result.topics.length ? (
+            <div className="topic-breakdown">
+              {result.topics.map((topic, index) => {
+                const label = textOf(topic, "name", "topic", "label") || "Topic";
+                const mentions = Number(topic?.mentions);
+                return (
+                  <div className={`topic-row topic-${index % 3}`} key={`${label}-${index}`}>
+                    <div className="topic-row-label"><span><i />{label}</span><small>{Number.isFinite(mentions) ? `${mentions} mention${mentions === 1 ? "" : "s"}` : "Detected"}</small></div>
+                    {Number.isFinite(mentions) && <div className="topic-track"><span style={{ width: `${Math.max(5, mentions / maxTopicMentions * 100)}%` }} /></div>}
+                  </div>
+                );
+              })}
+            </div>
+          ) : <EmptySignal>No distinct themes were returned.</EmptySignal>}
+          {result.keyMessages.length > 0 && (
+            <details className="evidence-details">
+              <summary><span>Notable messages</span><ChevronDown size={15} /></summary>
+              <ul className="evidence-list">
+                {result.keyMessages.map((message, index) => (
+                  <li key={index}>{textOf(message, "text", "message") || String(message)}</li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </article>
+
+        <article className="report-card health-card">
+          <div className="card-topline">
+            <SectionLabel>05 / CHAT HEALTH</SectionLabel>
+            <Layers3 size={19} className="lime-icon" />
+          </div>
+          <div className="score-row">
+            <div className="score-dial" style={{ "--score": `${scoreOf(result.health.score) ?? 0}%` }}>
+              <strong>{scoreOf(result.health.score) ?? "—"}{scoreOf(result.health.score) !== null && <small>%</small>}</strong>
+            </div>
+            <div><h3>{result.health.label || "Not scored"}</h3><p>{result.collaboration.label || "Collaboration insight unavailable"}</p></div>
+          </div>
+          {result.collaboration.description && <p className="card-description">{result.collaboration.description}</p>}
+          {result.health.description && <p className="card-description">{result.health.description}</p>}
+        </article>
+
+        <article className="report-card full-card">
+          <div className="card-topline">
+            <SectionLabel>06 / COMMITMENTS & DECISIONS</SectionLabel>
+            <Zap size={18} className="pink-icon" />
+          </div>
+          <div className="action-decision-grid">
+            <div className="evidence-column">
+              <h3><span className="evidence-index">A</span> Action items <b>{result.actions.length}</b></h3>
+              {result.actions.length ? (
+                <ul className="action-list">
+                  {result.actions.map((action, index) => (
+                    <li key={index}>
+                      <span className="list-check"><Check size={13} /></span>
+                      <div><strong>{textOf(action, "task", "action", "description", "text") || "Action item"}</strong>
+                        <small>{[action?.assignee, action?.deadline, action?.status].filter(Boolean).join(" · ")}</small>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : <EmptySignal>No explicit actions detected.</EmptySignal>}
+            </div>
+            <div className="evidence-column">
+              <h3><span className="evidence-index violet-index">D</span> Decisions <b>{result.decisions.length}</b></h3>
+              {result.decisions.length ? (
+                <ul className="decision-list">
+                  {result.decisions.map((decision, index) => (
+                    <li key={index}><span className="decision-diamond" />{textOf(decision, "decision", "description", "text") || "Decision"}</li>
+                  ))}
+                </ul>
+              ) : <EmptySignal>No decisions detected.</EmptySignal>}
             </div>
           </div>
+        </article>
 
-          <div className="health-score-row">
-            <ScoreRing
-              score={result.conversation_health?.score}
-              label="health"
-            />
-
-            <div>
-              <p>
-                {result.conversation_health?.description ||
-                  "Analyze a conversation to see its health."}
-              </p>
-            </div>
+        <article className="report-card timeline-card">
+          <div className="card-topline">
+            <SectionLabel>07 / THE TIMELINE</SectionLabel>
+            <MessageSquareText size={18} className="violet-icon" />
           </div>
-        </div>
+          {result.timeline.length ? (
+            <>
+              <p className="timeline-disclaimer">Sequence from the analyzer · timestamps were not provided</p>
+              <ol className="timeline-list">
+                {result.timeline.map((item, index) => (
+                  <li key={index}>
+                    <span className="timeline-pin" />
+                    <div><small>{textOf(item, "label", "title") || `EVENT ${String(index + 1).padStart(2, "0")}`}</small><p>{textOf(item, "detail", "description", "text") || String(item)}</p></div>
+                  </li>
+                ))}
+              </ol>
+            </>
+          ) : <EmptySignal>The analyzer did not return timeline events.</EmptySignal>}
+        </article>
+
+        <article className="report-card questions-card">
+          <div className="card-topline">
+            <SectionLabel>08 / OPEN THREADS</SectionLabel>
+            <CircleAlert size={18} className="pink-icon" />
+          </div>
+          {result.questions.length ? (
+            <ul className="question-list">
+              {result.questions.map((question, index) => <li key={index}>{textOf(question, "text", "question") || String(question)}</li>)}
+            </ul>
+          ) : <EmptySignal>No unanswered questions were flagged.</EmptySignal>}
+          {result.risks.length > 0 && (
+            <details className="evidence-details risk-details">
+              <summary><span>Signals & risks <b>{result.risks.length}</b></span><ChevronDown size={15} /></summary>
+              <ul className="evidence-list">
+                {result.risks.map((risk, index) => {
+                  const level = textOf(risk, "level", "severity");
+                  return (
+                    <li key={index}>
+                      <strong>{textOf(risk, "type", "label")}</strong>
+                      {textOf(risk, "text", "description")}
+                      {level && <small className={`risk-level risk-${level.toLowerCase()}`}> · {level}</small>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </details>
+          )}
+        </article>
       </div>
-
-      <div className="metric-grid">
-        <MetricCard
-          icon="✓"
-          label="Actions"
-          value={counts.actions || 0}
-          detail="tasks detected"
-        />
-        <MetricCard
-          icon="◆"
-          label="Decisions"
-          value={counts.decisions || 0}
-          detail="decisions detected"
-        />
-        <MetricCard
-          icon="◎"
-          label="People"
-          value={counts.people || 0}
-          detail="participants"
-        />
-        <MetricCard
-          icon="#"
-          label="Topics"
-          value={counts.topics || topics.length || 0}
-          detail="themes detected"
-        />
-      </div>
-
-      <div className="overview-grid">
-        <div className="collaboration-card">
-          <div className="card-heading">
-            <span className="card-icon">↗</span>
-            <div>
-              <span className="card-eyebrow">COLLABORATION</span>
-              <h3>
-                {result.collaboration?.label ||
-                  "Not analyzed"}
-              </h3>
-            </div>
-          </div>
-
-          <div className="collaboration-layout">
-            <ScoreRing
-              score={result.collaboration?.score}
-              label="score"
-            />
-
-            <p>
-              {result.collaboration?.description ||
-                "Collaboration insights will appear after analysis."}
-            </p>
-          </div>
-        </div>
-
-        <div className="tone-card">
-          <div className="card-heading">
-            <span className="card-icon">◌</span>
-            <div>
-              <span className="card-eyebrow">CONVERSATION TONE</span>
-              <h3>{result.tone?.label || "Neutral"}</h3>
-            </div>
-          </div>
-
-          <div className="tone-bar">
-            <div
-              className="tone-fill"
-              style={{
-                width: `${scoreValue(result.tone?.score)}%`,
-              }}
-            />
-          </div>
-
-          <p>
-            {result.tone?.description ||
-              "Tone information will appear here."}
-          </p>
-        </div>
-      </div>
-
-      <div className="topic-card">
-        <div className="card-heading">
-          <span className="card-icon">#</span>
-          <div>
-            <span className="card-eyebrow">TOPIC MAP</span>
-            <h3>Conversation themes</h3>
-          </div>
-        </div>
-
-        {topics.length > 0 ? (
-          <div className="topic-list">
-            {topics.map((topic, index) => (
-              <span
-                className="topic-pill"
-                key={`${getTopicText(topic)}-${index}`}
-              >
-                #{getTopicText(topic)}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon="#"
-            title="No topics detected"
-            description="The analyzer did not identify distinct topics."
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ActionList({ result }) {
-  const actions = result.action_items || [];
-
-  if (!actions.length) {
-    return (
-      <EmptyState
-        icon="✓"
-        title="No action items detected"
-        description="Concrete tasks will appear here when the conversation contains commitments."
-      />
-    );
-  }
-
-  return (
-    <div className="list-stack">
-      {actions.map((action, index) => (
-        <div className="list-card action-list-card" key={index}>
-          <div className="list-number">{String(index + 1).padStart(2, "0")}</div>
-
-          <div className="list-main">
-            <strong>{getActionText(action)}</strong>
-
-            <div className="list-meta">
-              {action?.assignee && (
-                <span>◉ {safeText(action.assignee)}</span>
-              )}
-
-              {action?.deadline && (
-                <span>◷ {safeText(action.deadline)}</span>
-              )}
-
-              {action?.status && (
-                <span className="status-pill">
-                  {safeText(action.status)}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function PeopleList({ result }) {
-  const people = result.people || [];
-
-  if (!people.length) {
-    return (
-      <EmptyState
-        icon="◎"
-        title="No participants detected"
-        description="People and roles will appear here after analysis."
-      />
-    );
-  }
-
-  return (
-    <div className="people-grid">
-      {people.map((person, index) => (
-        <div className="person-card" key={index}>
-          <div className="avatar">
-            {getPersonName(person).charAt(0).toUpperCase()}
-          </div>
-
-          <div>
-            <strong>{getPersonName(person)}</strong>
-
-            {person?.role && (
-              <span>{safeText(person.role)}</span>
-            )}
-
-            {person?.messages !== undefined && (
-              <small>
-                {person.messages} message
-                {person.messages === 1 ? "" : "s"}
-              </small>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function DecisionList({ result }) {
-  const decisions = result.decisions || [];
-
-  if (!decisions.length) {
-    return (
-      <EmptyState
-        icon="◆"
-        title="No decisions detected"
-        description="Detected agreements and choices will appear here."
-      />
-    );
-  }
-
-  return (
-    <div className="list-stack">
-      {decisions.map((decision, index) => (
-        <div className="list-card decision-card" key={index}>
-          <div className="decision-mark">✓</div>
-
-          <div className="list-main">
-            <strong>{getDecisionText(decision)}</strong>
-
-            {decision?.owner && (
-              <div className="list-meta">
-                <span>Decision by {safeText(decision.owner)}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Timeline({ result }) {
-  const timeline = result.timeline || [];
-
-  if (!timeline.length) {
-    return (
-      <EmptyState
-        icon="◷"
-        title="No timeline available"
-        description="Important conversation events will appear here."
-      />
-    );
-  }
-
-  return (
-    <div className="timeline">
-      {timeline.map((item, index) => (
-        <div className="timeline-item" key={index}>
-          <div className="timeline-dot" />
-
-          <div className="timeline-content">
-            <span className="timeline-index">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-
-            <div>
-              <strong>
-                {item?.title ||
-                  item?.event ||
-                  `Conversation event ${index + 1}`}
-              </strong>
-
-              <p>
-                {item?.description ||
-                  item?.text ||
-                  safeText(item)}
-              </p>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SignalList({ result }) {
-  const signals = [
-    ...(result.signals || []),
-    ...(result.risks || []).map((risk) => ({
-      ...risk,
-      type: "risk",
-    })),
-  ];
-
-  if (!signals.length) {
-    return (
-      <EmptyState
-        icon="!"
-        title="No major signals detected"
-        description="Risks, open questions and other conversation signals will appear here."
-      />
-    );
-  }
-
-  return (
-    <div className="signal-grid">
-      {signals.map((signal, index) => (
-        <div className="signal-card" key={index}>
-          <div className="signal-icon">
-            {signal?.type === "risk" ? "!" : "◈"}
-          </div>
-
-          <div>
-            <div className="signal-title-row">
-              <strong>
-                {signal?.label ||
-                  signal?.title ||
-                  signal?.type ||
-                  "Signal"}
-              </strong>
-
-              {signal?.severity && (
-                <span
-                  className={`severity ${safeText(
-                    signal.severity
-                  ).toLowerCase()}`}
-                >
-                  {safeText(signal.severity)}
-                </span>
-              )}
-            </div>
-
-            <p>
-              {signal?.description ||
-                signal?.text ||
-                "Conversation signal detected."}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Dashboard({
-  result,
-  chat,
-  activeTab,
-  setActiveTab,
-  onCopy,
-  onExport,
-}) {
-  const tabs = [
-    ["overview", "Overview"],
-    ["actions", "Actions"],
-    ["people", "People"],
-    ["decisions", "Decisions"],
-    ["timeline", "Timeline"],
-    ["signals", "Signals"],
-  ];
-
-  return (
-    <section className="dashboard-section">
-      <div className="dashboard-header">
-        <div>
-          <span className="eyebrow">DECODER OUTPUT</span>
-          <h2>Conversation intelligence</h2>
-          <p>
-            Your conversation has been converted into structured
-            intelligence.
-          </p>
-        </div>
-
-        <div className="dashboard-actions">
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={onCopy}
-          >
-            <span>⧉</span>
-            Copy summary
-          </button>
-
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={onExport}
-          >
-            <span>↓</span>
-            Export JSON
-          </button>
-        </div>
-      </div>
-
-      <div className="dashboard-tabs" role="tablist">
-        {tabs.map(([id, label]) => (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === id}
-            className={`tab-button ${
-              activeTab === id ? "active" : ""
-            }`}
-            key={id}
-            onClick={() => setActiveTab(id)}
-          >
-            {label}
-
-            {id !== "overview" && (
-              <span className="tab-count">
-                {id === "actions"
-                  ? result.action_items.length
-                  : id === "people"
-                    ? result.people.length
-                    : id === "decisions"
-                      ? result.decisions.length
-                      : id === "timeline"
-                        ? result.timeline.length
-                        : result.signals.length +
-                          result.risks.length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      <div className="dashboard-panel">
-        {activeTab === "overview" && (
-          <Overview result={result} />
-        )}
-
-        {activeTab === "actions" && (
-          <div className="dashboard-content">
-            <SectionTitle
-              eyebrow="ACTION ITEMS"
-              title="What needs to happen?"
-              description="Tasks extracted from the conversation, including ownership and deadlines when available."
-            />
-            <ActionList result={result} />
-          </div>
-        )}
-
-        {activeTab === "people" && (
-          <div className="dashboard-content">
-            <SectionTitle
-              eyebrow="PARTICIPANTS"
-              title="Who is involved?"
-              description="People detected in the conversation and their apparent roles."
-            />
-            <PeopleList result={result} />
-          </div>
-        )}
-
-        {activeTab === "decisions" && (
-          <div className="dashboard-content">
-            <SectionTitle
-              eyebrow="DECISIONS"
-              title="What was decided?"
-              description="Important agreements and choices detected by the decoder."
-            />
-            <DecisionList result={result} />
-          </div>
-        )}
-
-        {activeTab === "timeline" && (
-          <div className="dashboard-content">
-            <SectionTitle
-              eyebrow="TIMELINE"
-              title="How did the conversation evolve?"
-              description="A structured view of notable conversation events."
-            />
-            <Timeline result={result} />
-          </div>
-        )}
-
-        {activeTab === "signals" && (
-          <div className="dashboard-content">
-            <SectionTitle
-              eyebrow="SIGNALS"
-              title="What should the team notice?"
-              description="Risks, open questions and collaboration signals extracted from the conversation."
-            />
-            <SignalList result={result} />
-          </div>
-        )}
-      </div>
-
-      <details className="original-conversation">
-        <summary>
-          <span>View original conversation</span>
-          <span>+</span>
-        </summary>
-
-        <pre>{chat}</pre>
-      </details>
+      <div className="report-footnote"><span><ShieldCheck size={14} /> INSIGHT, NOT SURVEILLANCE.</span><span>Built from the data this conversation actually gave us.</span></div>
     </section>
   );
 }
 
-function App() {
+export default function App() {
   const [chat, setChat] = useState("");
-  const [result, setResult] = useState(EMPTY_RESULT);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [activeDemo, setActiveDemo] = useState("");
+  const [result, setResult] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisStage, setAnalysisStage] = useState(0);
-  const [hasAnalyzed, setHasAnalyzed] = useState(false);
-  const [toast, setToast] = useState(null);
-  const [showLanding, setShowLanding] = useState(true);
-
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [activeDemo, setActiveDemo] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const [activeSection, setActiveSection] = useState("studio");
+  const textAreaRef = useRef(null);
   const fileInputRef = useRef(null);
-  const stageTimerRef = useRef(null);
-  const toastTimerRef = useRef(null);
-
-  const showToast = (title, message = "", type = "success") => {
-    setToast({ title, message, type });
-
-    if (toastTimerRef.current) {
-      clearTimeout(toastTimerRef.current);
-    }
-
-    toastTimerRef.current = setTimeout(() => {
-      setToast(null);
-    }, 2600);
-  };
+  const requestLockRef = useRef(false);
 
   useEffect(() => {
-    return () => {
-      if (stageTimerRef.current) {
-        clearInterval(stageTimerRef.current);
-      }
-
-      if (toastTimerRef.current) {
-        clearTimeout(toastTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Click ripple effect.
-  useEffect(() => {
-    const handleClick = (event) => {
-      const target = event.target.closest(
-        "button, .demo-card, .interactive-card"
-      );
-
-      if (!target || target.disabled) return;
-
-      const rect = target.getBoundingClientRect();
-
-      const ripple = document.createElement("span");
-      ripple.className = "click-ripple";
-
-      ripple.style.left = `${event.clientX - rect.left}px`;
-      ripple.style.top = `${event.clientY - rect.top}px`;
-
-      target.appendChild(ripple);
-
-      window.setTimeout(() => {
-        ripple.remove();
-      }, 650);
-    };
-
-    document.addEventListener("click", handleClick);
-
-    return () => {
-      document.removeEventListener("click", handleClick);
-    };
-  }, []);
-
-  const stats = useMemo(
-    () => ({
-      actions: result.action_items?.length || 0,
-      decisions: result.decisions?.length || 0,
-      people: result.people?.length || 0,
-      signals:
-        (result.signals?.length || 0) +
-        (result.risks?.length || 0),
-    }),
-    [result]
-  );
-
-  const selectDemo = (demoId) => {
-    const demo = DEMOS[demoId];
-
-    if (!demo) return;
-
-    setActiveDemo(demoId);
-    setChat(demo.text);
-    setHasAnalyzed(false);
-    setResult(EMPTY_RESULT);
-    setActiveTab("overview");
-    setShowLanding(false);
-
-    showToast(
-      `${demo.label} loaded`,
-      "Conversation is ready to decode."
+    const sections = ["studio", "method", "report"]
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) {
+          setActiveSection(visible[0].target.id === "report" ? "" : visible[0].target.id);
+        }
+      },
+      { rootMargin: "-18% 0px -68% 0px" },
     );
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
+
+  const wordCount = chat.trim() ? chat.trim().split(/\s+/).length : 0;
+  const lineCount = chat.split(/\r?\n/).filter((line) => line.trim()).length;
+
+  const focusStudio = () => {
+    document.getElementById("studio")?.scrollIntoView({ behavior: "smooth" });
+    window.setTimeout(() => textAreaRef.current?.focus(), 450);
   };
 
-  const startJudgeDemo = () => {
-    const demo = DEMOS.hackathon;
-
-    setActiveDemo("hackathon");
-    setChat(demo.text);
-    setShowLanding(false);
-    setActiveTab("overview");
-
-    window.setTimeout(() => {
-      analyzeChat(demo.text, true);
-    }, 250);
+  const setInput = (value, demo = "") => {
+    setChat(value);
+    setActiveDemo(demo);
+    setResult(null);
+    setError("");
+    setNotice("");
   };
 
-  const analyzeChat = async (
-    providedText = chat,
-    isJudgeDemo = false
-  ) => {
-    const text = providedText.trim();
-
-    if (!text) {
-      showToast(
-        "Nothing to decode",
-        "Paste or load a conversation first.",
-        "error"
-      );
+  const loadFile = (file) => {
+    if (!file) return;
+    const extension = file.name.toLowerCase().split(".").pop();
+    if (!["txt", "csv"].includes(extension)) {
+      setError("That file type is not supported. Choose a .txt or .csv conversation.");
       return;
     }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setInput(typeof reader.result === "string" ? reader.result : "");
+      setNotice(`${file.name} is ready to decode.`);
+    };
+    reader.onerror = () => setError("The file could not be read. Try another text or CSV file.");
+    reader.readAsText(file);
+  };
 
-    if (stageTimerRef.current) {
-      clearInterval(stageTimerRef.current);
+  const analyzeChat = async (providedText = chat) => {
+    const text = providedText.trim();
+    if (!text) {
+      setError("Add a conversation before decoding.");
+      textAreaRef.current?.focus();
+      return;
     }
+    if (requestLockRef.current) return;
 
+    requestLockRef.current = true;
     setChat(text);
     setIsAnalyzing(true);
-    setHasAnalyzed(false);
-    setAnalysisStage(0);
-    setActiveTab("overview");
-    setShowLanding(false);
-
-    let stage = 0;
-
-    stageTimerRef.current = setInterval(() => {
-      stage += 1;
-
-      if (stage < ANALYSIS_STAGES.length) {
-        setAnalysisStage(stage);
-      }
-    }, 520);
+    setError("");
+    setNotice("");
+    setResult(null);
 
     try {
       const response = await fetch(`${API_URL}/analyze`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat: text }),
       });
-
-      if (!response.ok) {
-        throw new Error(`Backend returned ${response.status}`);
-      }
-
       const data = await response.json();
-
-      // Give the animation enough time to be visible.
-      await new Promise((resolve) =>
-        setTimeout(resolve, 1050)
-      );
-
+      if (!response.ok || data?.success === false) {
+        throw new Error(data?.error || `Analyzer returned ${response.status}.`);
+      }
       setResult(normalizeResult(data));
-    } catch (error) {
-      console.warn(
-        "Backend unavailable. Using local analysis.",
-        error
-      );
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 1050)
-      );
-
-      setResult(localAnalyze(text));
-
-      showToast(
-        "Local decoder active",
-        "Analysis completed without an external AI service."
+      window.setTimeout(() => {
+        document.getElementById("report")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? `${requestError.message} Check that the local analysis service is running, then retry.`
+          : "The conversation could not be decoded. Please retry.",
       );
     } finally {
-      if (stageTimerRef.current) {
-        clearInterval(stageTimerRef.current);
-      }
-
-      setAnalysisStage(ANALYSIS_STAGES.length - 1);
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 420)
-      );
-
+      requestLockRef.current = false;
       setIsAnalyzing(false);
-      setHasAnalyzed(true);
-      setActiveTab("overview");
-
-      if (isJudgeDemo) {
-        showToast(
-          "Judge Demo ready",
-          "The full intelligence dashboard is ready."
-        );
-      } else {
-        showToast(
-          "Analysis complete",
-          "Your conversation has been decoded."
-        );
-      }
     }
   };
 
-  const handleAnalyze = () => {
-    analyzeChat(chat);
-  };
-
-  const handleCopy = async () => {
-    const summary = result.summary || "No summary available.";
-
+  const copySummary = async () => {
     try {
-      await navigator.clipboard.writeText(summary);
-
-      showToast(
-        "Summary copied",
-        "The executive summary is now on your clipboard."
-      );
+      await navigator.clipboard.writeText(result?.summary || "");
+      setNotice("Summary copied to clipboard.");
     } catch {
-      showToast(
-        "Copy unavailable",
-        "Your browser blocked clipboard access.",
-        "error"
-      );
+      setError("Clipboard access was blocked by the browser.");
     }
   };
 
-  const handleExport = () => {
-    const payload = {
-      product: "GroupChat Decoder",
-      version: "4.0",
-      generated_at: new Date().toISOString(),
-      conversation: chat,
-      analysis: result,
-    };
-
+  const exportResult = () => {
     const blob = new Blob(
-      [JSON.stringify(payload, null, 2)],
-      {
-        type: "application/json",
-      }
+      [JSON.stringify({
+        product: "GroupChat Decoder",
+        generated_at: new Date().toISOString(),
+        conversation: chat,
+        analysis: result,
+      }, null, 2)],
+      { type: "application/json" },
     );
-
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
-
     anchor.href = url;
     anchor.download = "groupchat-decoder-analysis.json";
-
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
-
-    URL.revokeObjectURL(url);
-
-    showToast(
-      "JSON exported",
-      "Your structured analysis has been downloaded."
-    );
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setNotice("Analysis exported as JSON.");
   };
 
-  const handleFileUpload = (event) => {
-    const file = event.target.files?.[0];
-
-    if (!file) return;
-
-    const supported =
-      file.name.toLowerCase().endsWith(".txt") ||
-      file.name.toLowerCase().endsWith(".csv");
-
-    if (!supported) {
-      showToast(
-        "Unsupported file",
-        "Please upload a .txt or .csv file.",
-        "error"
-      );
-
-      event.target.value = "";
-      return;
+  const startDemo = () => {
+    const demo = DEMOS.find((item) => item.id === "hackathon");
+    if (demo) {
+      setInput(demo.text, demo.id);
+      analyzeChat(demo.text);
     }
+  };
 
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const content = safeText(reader.result);
-
-      setChat(content);
-      setActiveDemo("");
-      setShowLanding(false);
-      setHasAnalyzed(false);
-      setResult(EMPTY_RESULT);
-
-      showToast(
-        "Conversation imported",
-        `${file.name} is ready to decode.`
-      );
-    };
-
-    reader.onerror = () => {
-      showToast(
-        "Upload failed",
-        "The conversation file could not be read.",
-        "error"
-      );
-    };
-
-    reader.readAsText(file);
-
-    event.target.value = "";
+  const resetCase = () => {
+    setInput("");
+    document.getElementById("studio")?.scrollIntoView({ behavior: "smooth" });
+    window.setTimeout(() => textAreaRef.current?.focus(), 450);
   };
 
   return (
     <div className="app-shell">
-      <div className="ambient ambient-one" />
-      <div className="ambient ambient-two" />
-      <div className="ambient ambient-three" />
-
-      <Toast toast={toast} />
-
+      <div className="grain" aria-hidden="true" />
       <header className="navbar">
-        <button
-          type="button"
-          className="brand"
-          onClick={() => {
-            setShowLanding(true);
-            window.scrollTo({
-              top: 0,
-              behavior: "smooth",
-            });
-          }}
-        >
-          <span className="brand-mark">
-            <span />
-            <span />
-            <span />
-          </span>
-
-          <span>
-            <strong>GroupChat</strong>
-            <em>Decoder</em>
-          </span>
+        <Logo onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
+        <nav className="nav-links" aria-label="Main navigation">
+          <a className={activeSection === "method" ? "nav-active" : ""} aria-current={activeSection === "method" ? "location" : undefined} href="#method">The method</a>
+          <a className={activeSection === "studio" ? "nav-active" : ""} aria-current={activeSection === "studio" ? "location" : undefined} href="#studio">Decoder studio</a>
+        </nav>
+        <button className="nav-demo" type="button" onClick={startDemo}>
+          <Zap size={13} /> JUDGE DEMO
         </button>
-
-        <div className="nav-right">
-          <span className="version-badge">
-            v4.0 Competition Edition
-          </span>
-
-          <button
-            type="button"
-            className="judge-button"
-            onClick={startJudgeDemo}
-          >
-            <span>⚡</span>
-            Judge Demo
-          </button>
-        </div>
+        <button className="nav-cta" type="button" onClick={focusStudio}>
+          <span>OPEN A CASE</span><ArrowUpRight size={15} />
+        </button>
       </header>
 
-      {showLanding && !hasAnalyzed && (
-        <>
-          <main className="hero">
-            <div className="hero-copy">
-              <div className="hero-badge">
-                <span className="live-dot" />
-                Conversation intelligence engine
-              </div>
-
-              <h1>
-                Turn group chat
-                <br />
-                into <span>structured action.</span>
-              </h1>
-
-              <p>
-                GroupChat Decoder transforms messy conversations
-                into summaries, actions, decisions, people,
-                timelines and collaboration signals.
-              </p>
-
-              <div className="hero-actions">
-                <button
-                  type="button"
-                  className="primary-button"
-                  onClick={() => {
-                    document
-                      .getElementById("analyzer")
-                      ?.scrollIntoView({
-                        behavior: "smooth",
-                      });
-                  }}
-                >
-                  Start decoding
-                  <span>→</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="ghost-button"
-                  onClick={startJudgeDemo}
-                >
-                  Try Judge Demo
-                  <span>↗</span>
-                </button>
-              </div>
-
-              <div className="hero-proof">
-                <span>LOCAL-FIRST</span>
-                <i />
-                <span>STRUCTURED JSON</span>
-                <i />
-                <span>FAST ANALYSIS</span>
-              </div>
+      <main>
+        <section className="hero" aria-labelledby="hero-title">
+          <div className="hero-copy">
+            <div className="hero-kicker"><span className="live-mark" /> SOCIAL INTELLIGENCE / VISUALIZED</div>
+            <h1 id="hero-title">The signal<br />inside the <em>conversation.</em></h1>
+            <p className="hero-subtitle">Drop the messages. Decode the dynamics.<br /><strong>Keep the receipts.</strong></p>
+            <div className="hero-actions">
+              <button className="button-primary" type="button" onClick={focusStudio}>DECODE THE CHAT <ArrowRight size={17} /></button>
+              <a className="button-secondary" href="#method">HOW IT WORKS <ArrowDownToLine size={15} /></a>
             </div>
-
-            <div className="hero-visual">
-              <div className="visual-glow" />
-
-              <div className="decoder-orbit orbit-one" />
-              <div className="decoder-orbit orbit-two" />
-
-              <div className="decoder-card">
-                <div className="decoder-card-top">
-                  <span>DECODER ENGINE</span>
-                  <span className="engine-status">
-                    <i />
-                    READY
-                  </span>
-                </div>
-
-                <div className="decoder-core">
-                  <div className="core-ring">
-                    <div className="core-center">GD</div>
-                  </div>
-                </div>
-
-                <div className="decoder-stream">
-                  <div>
-                    <span>01</span>
-                    <b>Conversation</b>
-                    <i>✓</i>
-                  </div>
-                  <div>
-                    <span>02</span>
-                    <b>Actions</b>
-                    <i>✓</i>
-                  </div>
-                  <div>
-                    <span>03</span>
-                    <b>Decisions</b>
-                    <i>✓</i>
-                  </div>
-                  <div>
-                    <span>04</span>
-                    <b>Signals</b>
-                    <i>✓</i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </main>
-
-          <section className="how-section">
-            <SectionTitle
-              eyebrow="HOW IT WORKS"
-              title="From conversation to clarity"
-              description="One simple workflow turns communication noise into useful team intelligence."
-            />
-
-            <div className="flow-grid">
-              <div className="flow-card interactive-card">
-                <span className="flow-number">01</span>
-                <span className="flow-icon">◌</span>
-                <h3>Input</h3>
-                <p>
-                  Paste a group conversation or upload a text
-                  file.
-                </p>
-              </div>
-
-              <div className="flow-connector">→</div>
-
-              <div className="flow-card interactive-card">
-                <span className="flow-number">02</span>
-                <span className="flow-icon">◎</span>
-                <h3>Decode</h3>
-                <p>
-                  The analysis engine identifies structure,
-                  context and signals.
-                </p>
-              </div>
-
-              <div className="flow-connector">→</div>
-
-              <div className="flow-card interactive-card">
-                <span className="flow-number">03</span>
-                <span className="flow-icon">✦</span>
-                <h3>Act</h3>
-                <p>
-                  Teams get decisions, tasks and insights they
-                  can act on.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <section className="features-section">
-            <SectionTitle
-              eyebrow="BUILT FOR SIGNAL"
-              title="More than a summary"
-              description="The decoder extracts the information teams actually need from conversations."
-            />
-
-            <div className="feature-grid">
-              {[
-                [
-                  "✦",
-                  "Executive summary",
-                  "Understand the conversation in seconds.",
-                ],
-                [
-                  "✓",
-                  "Action extraction",
-                  "Find tasks, owners and deadlines.",
-                ],
-                [
-                  "◆",
-                  "Decision detection",
-                  "Surface the choices hidden in discussion.",
-                ],
-                [
-                  "◎",
-                  "People & roles",
-                  "See who is contributing and how.",
-                ],
-                [
-                  "◷",
-                  "Timeline",
-                  "Follow how the conversation evolved.",
-                ],
-                [
-                  "◈",
-                  "Signals",
-                  "Detect risks, questions and collaboration patterns.",
-                ],
-              ].map(([icon, title, description]) => (
-                <div
-                  className="feature-card interactive-card"
-                  key={title}
-                >
-                  <span className="feature-icon">{icon}</span>
-                  <h3>{title}</h3>
-                  <p>{description}</p>
-                  <span className="feature-arrow">↗</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        </>
-      )}
-
-      <section
-        className={`analyzer-section ${
-          hasAnalyzed ? "analyzer-with-results" : ""
-        }`}
-        id="analyzer"
-      >
-        <div className="analyzer-heading">
-          <div>
-            <span className="eyebrow">CONVERSATION ANALYZER</span>
-            <h2>Give the decoder something to read.</h2>
-            <p>
-              Paste a conversation, choose a demo, or upload a
-              text file.
-            </p>
+            <div className="hero-proof"><span>LOCAL-FIRST ENGINE</span><i /> <span>NO MADE-UP RECEIPTS</span><i /> <span>YOUR DATA, YOUR BUSINESS</span></div>
           </div>
 
-          <div className="analyzer-status">
-            <span className="status-dot" />
-            Local engine available
+          <div className="hero-art" aria-label="Example conversation excerpts being analyzed">
+            <div className="art-index"><span>CASE FILE 001</span><span>ILLUSTRATIVE COMPOSITION</span></div>
+            <div className="chat-slip slip-one"><small>11:42 PM · MAYBE</small><p>“so are we actually doing this or...”</p><span className="slip-user">mia</span></div>
+            <div className="chat-slip slip-two"><small>11:43 PM · CONFIRMED</small><p>“I already booked it btw”</p><span className="slip-user">jules</span></div>
+            <div className="highlight-ring"><ScanSearch size={28} strokeWidth={1.35} /></div>
+            <div className="annotation annotation-top"><span>01</span> open thread</div>
+            <div className="annotation annotation-bottom"><span>02</span> commitment detected</div>
+            <div className="art-stamp">THE<br />LORE<br /><b>IS REAL.</b></div>
+            <div className="art-footer"><span>GCD / SOCIAL FORENSICS</span><span><span className="live-mark" /> ENGINE READY</span></div>
           </div>
-        </div>
+          <div className="hero-bottomline"><span>01 — INPUT</span><span>02 — DECODE</span><span>03 — KNOW THE TEA</span><ArrowDownToLine size={16} /></div>
+        </section>
 
-        <div className="demo-selector">
-          {Object.values(DEMOS).map((demo) => (
-            <button
-              type="button"
-              className={`demo-card ${
-                activeDemo === demo.id ? "selected" : ""
-              }`}
-              key={demo.id}
-              onClick={() => selectDemo(demo.id)}
-            >
-              <span className="demo-icon">{demo.icon}</span>
-
-              <span>
-                <strong>{demo.label}</strong>
-                <small>{demo.description}</small>
-              </span>
-
-              <span className="demo-check">
-                {activeDemo === demo.id ? "✓" : "→"}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="input-card">
-          <div className="input-toolbar">
-            <span>
-              <span className="terminal-dot" />
-              conversation.input
-            </span>
-
-            <div className="input-tools">
-              <button
-                type="button"
-                className="mini-button"
-                onClick={() => fileInputRef.current?.click()}
+        <section className="studio-section" id="studio">
+          <div className="studio-head">
+            <div><SectionLabel accent>NEW INVESTIGATION / INPUT 01</SectionLabel><h2>Conversation<br /><em>under review.</em></h2></div>
+            <p>Paste a message dump, import a supported file, or start with a sample case. The service returns the analysis you see below.</p>
+          </div>
+          <div className="studio-layout">
+            <div className="input-panel">
+              <div className="input-panel-head">
+                <span><span className="panel-indicator" /> THE EVIDENCE <i>/</i> CHAT UNDER REVIEW</span>
+                <span>PRIVATE BY DESIGN <ShieldCheck size={13} /></span>
+              </div>
+              <div
+                className={`editor-wrap${isDragging ? " is-dragging" : ""}`}
+                onDragOver={(event) => { event.preventDefault(); setIsDragging(true); }}
+                onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setIsDragging(false); }}
+                onDrop={(event) => { event.preventDefault(); setIsDragging(false); loadFile(event.dataTransfer.files?.[0]); }}
               >
-                ↑ Upload .txt / .csv
+                <div className="editor-gutter" aria-hidden="true">01<br />02<br />03<br />04<br />05<br />06<br />07<br />08</div>
+                <textarea
+                  ref={textAreaRef}
+                  value={chat}
+                  onChange={(event) => setInput(event.target.value)}
+                  placeholder={"Paste the groupchat here...\n\nMia: are we still on for tonight?\nJules: booked the table already ✨\nAri: wait what time??"}
+                  spellCheck="false"
+                  aria-label="Conversation text"
+                />
+                {!chat && <div className="drop-hint"><Upload size={14} /> DROP A .TXT OR .CSV HERE</div>}
+              </div>
+              <div className="editor-toolbar">
+                <span>{wordCount} WORDS <i /> {lineCount} LINES</span>
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".txt,.csv,text/plain,text/csv"
+                    onChange={(event) => { loadFile(event.target.files?.[0]); event.target.value = ""; }}
+                    hidden
+                    aria-label="Upload a text or CSV conversation"
+                  />
+                  <button className="toolbar-button" type="button" onClick={() => fileInputRef.current?.click()}><Upload size={14} /> IMPORT FILE</button>
+                  {chat && <button className="toolbar-button clear-button" type="button" onClick={() => setInput("")}><X size={14} /> CLEAR</button>}
+                </div>
+              </div>
+              <div className="decode-row">
+                <div className="format-note"><FileText size={15} /><span>Supports plain text + CSV<br /><small>Message labels are best-effort parsed by the analyzer.</small></span></div>
+                <button className="button-primary decode-button" type="button" disabled={!chat.trim() || isAnalyzing} onClick={() => analyzeChat()}>
+                  {isAnalyzing ? <><LoaderCircle className="spin" size={17} /> DECODING…</> : <>DECODE THE CHAT <ArrowRight size={17} /> </>}
+                </button>
+              </div>
+            </div>
+            <aside className="sample-panel">
+              <div className="sample-panel-head"><SectionLabel>OR START WITH A CASE</SectionLabel><span>03 SAMPLES</span></div>
+              <p className="sample-intro">No chat on hand? Pick a sample conversation and send it through the same analyzer.</p>
+              <div className="sample-list">
+                {DEMOS.map((demo, index) => (
+                  <button className={`sample-option${activeDemo === demo.id ? " selected" : ""}`} key={demo.id} type="button" onClick={() => setInput(demo.text, demo.id)}>
+                    <span className="sample-num">0{index + 1}</span><span className="sample-title">{demo.label}</span><ArrowUpRight size={15} />
+                  </button>
+                ))}
+              </div>
+              <button className="sample-run" type="button" disabled={isAnalyzing} onClick={() => analyzeChat()}>
+                <Zap size={15} /> RUN SELECTED CASE
               </button>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".txt,.csv,text/plain,text/csv"
-                onChange={handleFileUpload}
-                hidden
-              />
-            </div>
+              <div className="studio-privacy"><ShieldCheck size={17} /><p><strong>Not here to expose anyone.</strong><br />The local engine analyzes the text you choose to submit. Optional AI provider use depends on your backend configuration.</p></div>
+            </aside>
           </div>
+          {isAnalyzing && (
+            <div className="processing-state" role="status" aria-live="polite">
+              <span className="processing-icon"><LoaderCircle size={20} /></span>
+              <div><strong>DECODER IS READING THE RECEIPTS</strong><p>Waiting for the analysis service to return its findings. No progress is being guessed.</p></div>
+              <span className="processing-pulse" />
+            </div>
+          )}
+          {error && !result && (
+            <div className="feedback feedback-error" role="alert">
+              <CircleAlert size={17} /><span>{error}</span><button type="button" onClick={() => analyzeChat()} disabled={isAnalyzing || !chat.trim()}><RotateCcw size={14} /> RETRY</button>
+            </div>
+          )}
+          {notice && !error && !result && <div className="feedback feedback-notice" role="status"><Check size={16} />{notice}</div>}
+        </section>
 
-          <textarea
-            value={chat}
-            onChange={(event) => {
-              setChat(event.target.value);
-              setActiveDemo("");
-              setHasAnalyzed(false);
-            }}
-            placeholder={`Paste your group conversation here...
-
-Example:
-Aarav: I'll handle the backend.
-Priya: I'll finish the frontend by Friday.
-Rohan: Should we use JWT?
-Aarav: Agreed. Let's use JWT.`}
-            spellCheck="false"
-          />
-
-          <div className="input-footer">
-            <span>
-              {chat.trim()
-                ? `${chat.trim().split(/\s+/).length} words`
-                : "Waiting for conversation"}
-            </span>
-
-            <button
-              type="button"
-              className="primary-button analyze-button"
-              onClick={handleAnalyze}
-              disabled={isAnalyzing}
-            >
-              {isAnalyzing ? (
-                <>
-                  <span className="button-spinner" />
-                  Decoding...
-                </>
-              ) : (
-                <>
-                  Decode conversation
-                  <span>→</span>
-                </>
-              )}
-            </button>
+        <section className="method-section" id="method">
+          <div className="method-heading">
+            <SectionLabel accent>THE METHOD / NO VIBES-BASED METRICS</SectionLabel>
+            <h2>Read the room.<br /><em>Keep the receipts.</em></h2>
           </div>
-        </div>
-      </section>
-
-      {hasAnalyzed && (
-        <Dashboard
-          result={result}
-          chat={chat}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          onCopy={handleCopy}
-          onExport={handleExport}
-        />
-      )}
-
-      {!hasAnalyzed && (
-        <section className="architecture-section">
-          <SectionTitle
-            eyebrow="UNDER THE HOOD"
-            title="Built to be reliable"
-            description="The architecture separates the interface, API and intelligence layer so the product stays usable even when external services are unavailable."
-          />
-
-          <div className="architecture-flow">
-            <div className="architecture-node">
-              <span>01</span>
-              <strong>React</strong>
-              <small>Interactive interface</small>
-            </div>
-
-            <div className="architecture-line">→</div>
-
-            <div className="architecture-node">
-              <span>02</span>
-              <strong>FastAPI</strong>
-              <small>Analysis endpoint</small>
-            </div>
-
-            <div className="architecture-line">→</div>
-
-            <div className="architecture-node">
-              <span>03</span>
-              <strong>Analysis Engine</strong>
-              <small>Structured intelligence</small>
-            </div>
-
-            <div className="architecture-line">→</div>
-
-            <div className="architecture-node">
-              <span>04</span>
-              <strong>Dashboard</strong>
-              <small>Actionable output</small>
-            </div>
-          </div>
-
-          <div className="reliability-grid">
-            <div>
-              <span>01</span>
-              <strong>Local fallback</strong>
-              <p>
-                Core analysis can run without external API
-                credits.
-              </p>
-            </div>
-
-            <div>
-              <span>02</span>
-              <strong>Structured output</strong>
-              <p>
-                The dashboard is powered by predictable JSON
-                data.
-              </p>
-            </div>
-
-            <div>
-              <span>03</span>
-              <strong>Optional AI</strong>
-              <p>
-                External LLM analysis can be enabled when
-                available.
-              </p>
-            </div>
+          <div className="method-steps">
+            <article><span className="method-number">01</span><MessageSquareText size={22} /><h3>Drop the context</h3><p>Paste the conversation or bring in a .txt / .csv export.</p></article>
+            <article><span className="method-number">02</span><ScanSearch size={22} /><h3>Run the decoder</h3><p>The existing analyzer finds the actual people, decisions, actions, and threads.</p></article>
+            <article><span className="method-number">03</span><Fingerprint size={22} /><h3>Get the lore</h3><p>A readable case file. No invented rankings, fake timestamps, or filler.</p></article>
           </div>
         </section>
-      )}
+
+        {result && (
+          <Report
+            result={result}
+            notice={notice}
+            error={error}
+            onCopy={copySummary}
+            onExport={exportResult}
+            onDecodeAnother={resetCase}
+          />
+        )}
+      </main>
 
       <footer className="footer">
-        <div>
-          <strong>GroupChat Decoder</strong>
-          <span>Conversation → Intelligence → Action</span>
-        </div>
-
-        <span>v4.0 Competition Edition</span>
+        <Logo onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
+        <span>YOUR CHAT. YOUR CALL.</span>
+        <span>GCD / v4.0</span>
       </footer>
-
-      {isAnalyzing && (
-        <div className="analysis-overlay">
-          <div className="analysis-modal">
-            <div className="analysis-top">
-              <span className="eyebrow">DECODER ENGINE</span>
-              <span className="analysis-live">
-                <i />
-                PROCESSING
-              </span>
-            </div>
-
-            <div className="analysis-core">
-              <div className="analysis-orbit orbit-a" />
-              <div className="analysis-orbit orbit-b" />
-              <div className="analysis-center">
-                <span>GD</span>
-              </div>
-            </div>
-
-            <div className="analysis-copy">
-              <h2>
-                {ANALYSIS_STAGES[analysisStage]?.title ||
-                  "Decoding conversation"}
-              </h2>
-
-              <p>
-                {ANALYSIS_STAGES[analysisStage]?.detail ||
-                  "Turning conversation into structured intelligence."}
-              </p>
-            </div>
-
-            <div className="analysis-steps">
-              {ANALYSIS_STAGES.map((stage, index) => (
-                <div
-                  className={`analysis-step ${
-                    index < analysisStage ? "complete" : ""
-                  } ${
-                    index === analysisStage ? "current" : ""
-                  }`}
-                  key={stage.title}
-                >
-                  <span className="analysis-step-icon">
-                    {index < analysisStage
-                      ? "✓"
-                      : index === analysisStage
-                        ? "•"
-                        : "○"}
-                  </span>
-
-                  <span>{stage.title}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="analysis-progress">
-              <span
-                style={{
-                  width: `${
-                    ((analysisStage + 1) /
-                      ANALYSIS_STAGES.length) *
-                    100
-                  }%`,
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-
-export default App;
