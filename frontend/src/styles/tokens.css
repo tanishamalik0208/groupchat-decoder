@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 
 :root {
   color-scheme: dark;
@@ -9,35 +9,41 @@
   --font-display: "Space Grotesk", "Inter", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --bg: #06070d;
-  --bg-elevated: #0a0c14;
-  --surface-1: rgba(16, 19, 31, .88);
-  --surface-2: rgba(21, 25, 41, .92);
-  --surface-3: #1a1f31;
-  --line: rgba(170, 179, 220, .14);
-  --line-strong: rgba(170, 179, 220, .24);
-  --text: #f4f5ff;
-  --text-secondary: #a5abc4;
-  --text-muted: #707790;
-  --indigo: #8185ff;
+  --bg: #04040a;
+  --bg-elevated: #090911;
+  --surface-1: rgba(12, 12, 23, .88);
+  --surface-2: rgba(19, 19, 35, .94);
+  --surface-3: #202035;
+  --line: rgba(196, 193, 255, .14);
+  --line-strong: rgba(196, 193, 255, .28);
+  --text: #f8f7ff;
+  --text-secondary: #aaa8c3;
+  --text-muted: #77758e;
+  --indigo: #8c72ff;
   --indigo-strong: #6366f1;
-  --cyan: #22d3ee;
-  --magenta: #f472b6;
-  --emerald: #34d399;
+  --cyan: #48f2ff;
+  --magenta: #ff3ac8;
+  --emerald: #caff35;
   --amber: #fbbf24;
   --rose: #fb7185;
-  --aurora: radial-gradient(ellipse at 15% 0%, rgba(99, 102, 241, .19), transparent 43%),
-    radial-gradient(ellipse at 88% 12%, rgba(34, 211, 238, .1), transparent 38%),
-    radial-gradient(ellipse at 51% 100%, rgba(52, 211, 153, .07), transparent 48%);
-  --gradient-primary: linear-gradient(115deg, #8589ff, #4f73ec 48%, #22b7d5);
-  --gradient-border: linear-gradient(140deg, rgba(129, 133, 255, .48), rgba(34, 211, 238, .14) 44%, rgba(244, 114, 182, .18));
-  --radius-sm: 10px;
-  --radius-md: 15px;
-  --radius-lg: 21px;
-  --radius-xl: 28px;
-  --shadow-panel: 0 22px 80px rgba(0, 0, 0, .3), inset 0 1px rgba(255, 255, 255, .04);
-  --glow-indigo: 0 0 38px rgba(99, 102, 241, .2);
-  --glow-cyan: 0 0 36px rgba(34, 211, 238, .17);
+  --acid: #caff35;
+  --aurora: radial-gradient(ellipse at 20% -3%, rgba(108, 50, 255, .29), transparent 42%),
+    radial-gradient(ellipse at 84% 11%, rgba(20, 221, 255, .18), transparent 35%),
+    radial-gradient(ellipse at 58% 39%, rgba(255, 36, 191, .09), transparent 38%);
+  --gradient-primary: linear-gradient(112deg, #9b72ff, #634aff 43%, #14cfe6 78%, #caff35);
+  --gradient-border: conic-gradient(from var(--border-angle, 0deg), rgba(140, 114, 255, .84), rgba(72, 242, 255, .3), rgba(255, 58, 200, .63), rgba(202, 255, 53, .46), rgba(140, 114, 255, .84));
+  --gradient-text: linear-gradient(100deg, #fff, #ad93ff 35%, #48f2ff 72%, #caff35);
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 32px;
+  --blur-glass: 24px;
+  --shadow-panel: 0 28px 90px rgba(0, 0, 0, .53), inset 0 1px rgba(255, 255, 255, .07);
+  --glow-indigo: 0 0 56px rgba(109, 68, 255, .23);
+  --glow-cyan: 0 0 44px rgba(20, 221, 255, .2);
+  --glow-acid: 0 0 40px rgba(202, 255, 53, .23);
+  --ease-elastic: cubic-bezier(.2, 1.1, .25, 1);
+  --ease-cinematic: cubic-bezier(.77, 0, .18, 1);
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -58,8 +64,8 @@
 }
 
 * { box-sizing: border-box; }
-html { min-width: 360px; min-height: 100%; scroll-behavior: smooth; scroll-padding-top: 96px; background: var(--bg); }
-body { min-width: 360px; min-height: 100vh; margin: 0; background: var(--bg); color: var(--text); }
+html { min-width: 320px; min-height: 100%; scroll-behavior: smooth; scroll-padding-top: 96px; background: var(--bg); }
+body { min-width: 320px; min-height: 100vh; margin: 0; background: var(--bg); color: var(--text); }
 body, button, textarea, input { font-family: var(--font-body); }
 button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 button { color: inherit; }
@@ -72,9 +78,6 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 ::selection { color: #fff; background: rgba(99, 102, 241, .62); }
 #root { min-height: 100vh; }
 
-@media (max-width: 380px) {
-  html, body { min-width: 320px; }
-}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;
