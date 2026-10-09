@@ -806,7 +806,7 @@ function App() {
     }
     if (line && y <= 400) context.fillText(line, 76, y);
     context.fillStyle = "#a5abc4";
-    context.font = "500 20px 'DM Mono', monospace";
+    context.font = "500 20px 'JetBrains Mono', monospace";
     context.fillText(`${result.message_count ?? "—"} MESSAGES    ${result.participant_count ?? result.people.length} PEOPLE    ${result.actions.length} ACTIONS`, 76, 492);
     context.fillStyle = "#707790";
     context.font = "16px Inter, sans-serif";
@@ -922,23 +922,23 @@ function ScrambleHeading({ reducedMotion }) {
   useEffect(() => {
     if (reducedMotion) return undefined;
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let frame = 0;
-    const totalFrames = 16;
+    const duration = 672;
+    const startedAt = monotonicNow();
     const interval = window.setInterval(() => {
-      frame += 1;
-      const revealed = Math.floor((frame / totalFrames) * finalText.length);
+      const progress = Math.min(1, (monotonicNow() - startedAt) / duration);
+      const revealed = Math.floor(progress * finalText.length);
       setText(finalText.split("").map((character, index) => {
         if (character === " " || index < revealed) return character;
         return alphabet[Math.floor(Math.random() * alphabet.length)];
       }).join(""));
-      if (frame >= totalFrames) {
+      if (progress >= 1) {
         setText(finalText);
         window.clearInterval(interval);
       }
     }, 42);
     return () => window.clearInterval(interval);
   }, [reducedMotion]);
-  return <h1 id="hero-title">{text.split(" ").map((word, index) => <span className={index >= 4 ? "headline-accent" : ""} key={`${index}-${word}`}>{word}{index < 5 ? " " : ""}</span>)}</h1>;
+  return <h1 id="hero-title" aria-label={finalText}>{text.split(" ").map((word, index) => <span className={index >= 4 ? "headline-accent" : ""} key={`${index}-${word}`}>{word}{index < 5 ? " " : ""}</span>)}</h1>;
 }
 
 export default App;
