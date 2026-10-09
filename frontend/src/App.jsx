@@ -675,6 +675,7 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [navScrolled, setNavScrolled] = useState(false);
   const [activeNav, setActiveNav] = useState("workspace");
+  const [analysisMode, setAnalysisMode] = useState("checking");
   const textAreaRef = useRef(null);
   const menuButtonRef = useRef(null);
   const mobileMenuRef = useRef(null);
@@ -701,6 +702,26 @@ function App() {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${API_URL}/health`, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Health check failed");
+        return response.json();
+      })
+      .then((health) => {
+        if (typeof health.ai_mode === "boolean") {
+          setAnalysisMode(health.ai_mode ? "ai" : "local");
+        } else {
+          setAnalysisMode("unavailable");
+        }
+      })
+      .catch((healthError) => {
+        if (healthError.name !== "AbortError") setAnalysisMode("unavailable");
+      });
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -1030,7 +1051,7 @@ function App() {
           <div className="section-heading workspace-heading"><div><span className="eyebrow"><span className="live-dot" /> DECODER STUDIO / INPUT 01</span><h2 id="workspace-title">Bring the <em>conversation.</em></h2></div><p>Paste a message dump or import a plain-text / CSV export. The analyzer returns the structured findings shown in your report.</p></div>
           <div className="workspace-grid">
             <GlassCard className={`editor-panel${isDragging ? " is-dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setIsDragging(true); }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setIsDragging(false); }} onDrop={(event) => { event.preventDefault(); event.stopPropagation(); setIsDragging(false); loadFile(event.dataTransfer.files?.[0]); }}>
-              <div className="editor-header"><div><span className="editor-led" /><span>CONVERSATION INPUT</span><Badge tone="emerald">PRIVATE CASE</Badge></div><span className="format-badge"><FileText size={13} /> {format}</span></div>
+              <div className="editor-header"><div><span className="editor-led" /><span>CONVERSATION INPUT</span><Badge tone="emerald">CASE INPUT</Badge></div><span className="format-badge"><FileText size={13} /> {format}</span></div>
               <div className="editor-body"><div ref={gutterRef} className="line-numbers" aria-hidden="true">{Array.from({ length: Math.max(8, lineCount) }, (_, index) => <span key={index}>{String(index + 1).padStart(2, "0")}</span>)}</div><textarea ref={textAreaRef} aria-label="Conversation text" value={chat} onChange={(event) => updateChat(event.target.value)} onScroll={(event) => { if (gutterRef.current) gutterRef.current.scrollTop = event.target.scrollTop; }} placeholder={"Paste your group chat here…\n\nMia: are we still on for tonight?\nJules: booked the table already\nAri: wait, what time?"} spellCheck="false" /></div>
               {!chat && <div className="editor-drop-hint"><Upload size={14} /> DROP A .TXT OR .CSV FILE</div>}
               <div className="editor-footer"><div className="editor-counts"><span>{messageCount} <small>LINES</small></span><i /><span>{chat.length.toLocaleString()} <small>CHARACTERS</small></span></div><div className="editor-tools"><input ref={fileInputRef} type="file" accept=".txt,.csv,text/plain,text/csv" hidden aria-label="Import text or CSV conversation" onChange={(event) => { loadFile(event.target.files?.[0]); event.target.value = ""; }} /><button className="quiet-button" type="button" onClick={() => fileInputRef.current?.click()}><Upload size={14} /> Import</button><button className="quiet-button" type="button" disabled={!previousChat} onClick={() => { const old = previousChat; setPreviousChat(chat); setChat(old); setResult(null); setError(""); }}><RotateCcw size={14} /> Undo</button><button className="quiet-button quiet-danger" type="button" disabled={!chat} onClick={() => updateChat("")}><X size={14} /> Clear</button></div></div>
@@ -1045,7 +1066,7 @@ function App() {
         {result && <Dashboard result={result} notice={toast} onToast={setNotice} onEvidence={setEvidence} onExportJson={exportJson} onShareImage={shareImage} onReset={resetCase} search={search} setSearch={setSearch} searchRef={searchRef} reducedMotion={reducedMotion} />}
       </main>
 
-      <footer className="site-footer"><a className="brand" href="#" aria-label="Back to top"><span className="brand-mark"><Fingerprint size={17} /></span><span>groupchat<span>decoder</span></span></a><span>CONVERSATION → CLARITY</span><span>YOUR CHAT. YOUR CALL.</span></footer>
+      <footer className="site-footer"><a className="brand" href="#" aria-label="Back to top"><span className="brand-mark"><Fingerprint size={17} /></span><span>groupchat<span>decoder</span></span></a><span>CONVERSATION → CLARITY</span><span className={`analysis-mode mode-${analysisMode}`} role="status">{analysisMode === "ai" ? "AI mode: on" : analysisMode === "local" ? "Local mode" : analysisMode === "checking" ? "Checking analysis mode…" : "Analysis mode unavailable"}</span><span>YOUR CHAT. YOUR CALL.</span></footer>
 
       <AnimatePresence>{evidence && <EvidenceDrawer evidence={evidence} chat={chat} onClose={() => setEvidence("")} />}</AnimatePresence>
       <CommandPalette key={paletteOpen ? "palette-open" : "palette-closed"} open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />

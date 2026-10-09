@@ -74,7 +74,37 @@ Includes realistic demo scenarios for:
 Results can be copied, exported as JSON, or shared.
 
 ### 🔒 Privacy-Friendly Design
-The application can perform deterministic local analysis without requiring an external AI API.
+The frontend sends conversations to the FastAPI backend. By default, analysis is deterministic and runs locally on that backend. If OpenAI is enabled, conversation text is also sent to the configured OpenAI service.
+
+## Run locally
+
+### Backend
+
+```powershell
+cd backend
+Copy-Item .env.example .env
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Open `backend/.env` to set `ALLOWED_ORIGINS`. Local deterministic analysis is the default. To enable the optional OpenAI integration, set `USE_OPENAI=true` and add your `OPENAI_API_KEY` there. Never put provider keys in frontend settings.
+
+### Frontend
+
+In a second terminal:
+
+```powershell
+cd frontend
+Copy-Item .env.example .env
+npm install
+npm run dev
+```
+
+Open the local URL printed by Vite (normally `http://127.0.0.1:5173`). `VITE_API_URL` is a non-secret API base URL and defaults to `http://127.0.0.1:8000`.
+
+The backend `/health` endpoint reports whether optional AI mode is configured as a boolean only. The API limits chat input size, applies per-IP rate limiting, and only allows configured browser origins.
 
 ## Architecture
 

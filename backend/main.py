@@ -1,32 +1,145 @@
 import os
 import re
 import json
-from collections import Counter
+import logging
+import threading
+import time
+from collections import Counter, defaultdict, deque
+from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-load_dotenv()
+load_dotenv(Path(__file__).with_name(".env"))
+
+logger = logging.getLogger("groupchat_decoder.api")
+DEFAULT_ALLOWED_ORIGINS = (
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+)
+configured_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
+ALLOWED_ORIGINS = (
+    [origin.strip() for origin in configured_origins.split(",") if origin.strip()]
+    if "ALLOWED_ORIGINS" in os.environ
+    else list(DEFAULT_ALLOWED_ORIGINS)
+)
+MAX_REQUEST_BYTES = int(os.getenv("MAX_REQUEST_BYTES", "1000000"))
+MAX_CHAT_CHARS = int(os.getenv("MAX_CHAT_CHARS", "100000"))
+RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "60"))
+RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
+request_times = defaultdict(deque)
+rate_limit_lock = threading.Lock()
+
+
+def ai_mode_enabled() -> bool:
+    return os.getenv("USE_OPENAI", "false").strip().lower() == "true" and bool(os.getenv("OPENAI_API_KEY", "").strip())
+
+
+class RequestSizeLimitMiddleware:
+    def __init__(self, app, max_bytes: int):
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope["path"] != "/analyze" or scope["method"] != "POST":
+            await self.app(scope, receive, send)
+            return
+
+        content_length = next(
+            (value.decode("latin-1") for name, value in scope["headers"] if name.lower() == b"content-length"),
+            None,
+        )
+        if content_length:
+            try:
+                if int(content_length) > self.max_bytes:
+                    await JSONResponse(
+                        status_code=413,
+                        content={"success": False, "error": "Request is too large. Shorten the conversation and retry."},
+                    )(scope, receive, send)
+                    return
+            except ValueError:
+                await JSONResponse(
+                    status_code=400,
+                    content={"success": False, "error": "Invalid request size."},
+                )(scope, receive, send)
+                return
+
+        body = bytearray()
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            if message["type"] != "http.request":
+                continue
+            body.extend(message.get("body", b""))
+            if len(body) > self.max_bytes:
+                await JSONResponse(
+                    status_code=413,
+                    content={"success": False, "error": "Request is too large. Shorten the conversation and retry."},
+                )(scope, receive, send)
+                return
+            if not message.get("more_body", False):
+                break
+
+        body_delivered = False
+
+        async def replay_body():
+            nonlocal body_delivered
+            if body_delivered:
+                return {"type": "http.disconnect"}
+            body_delivered = True
+            return {"type": "http.request", "body": bytes(body), "more_body": False}
+
+        await self.app(scope, replay_body, send)
+
 
 app = FastAPI(
     title="GroupChat Decoder API",
     version="3.0.0"
 )
 
+app.add_middleware(RequestSizeLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
+
+
+@app.middleware("http")
+async def request_safeguards(request: Request, call_next):
+    if request.url.path == "/analyze" and request.method == "POST":
+        client_ip = request.client.host if request.client else "unknown"
+        cutoff = time.monotonic() - RATE_LIMIT_WINDOW_SECONDS
+        with rate_limit_lock:
+            timestamps = request_times[client_ip]
+            while timestamps and timestamps[0] <= cutoff:
+                timestamps.popleft()
+            if len(timestamps) >= RATE_LIMIT_REQUESTS:
+                return JSONResponse(
+                    status_code=429,
+                    content={"success": False, "error": "Too many requests. Please wait a moment and retry."},
+                    headers={"Retry-After": str(RATE_LIMIT_WINDOW_SECONDS)},
+                )
+            timestamps.append(time.monotonic())
+
+    return await call_next(request)
+
+
+@app.exception_handler(Exception)
+async def safe_unexpected_error_handler(_request: Request, exc: Exception):
+    logger.error("Unhandled API error (%s)", type(exc).__name__)
+    return JSONResponse(
+        status_code=500,
+        content={"success": False, "error": "The analysis service encountered an error. Please retry."},
+    )
 
 
 # =========================================================
@@ -1190,7 +1303,8 @@ def home():
 @app.get("/health")
 def health():
     return {
-        "status": "healthy"
+        "status": "healthy",
+        "ai_mode": ai_mode_enabled(),
     }
 
 
@@ -1207,6 +1321,12 @@ def analyze_chat(data: dict):
             "error":
                 "No conversation provided."
         }
+
+    if len(chat) > MAX_CHAT_CHARS:
+        return JSONResponse(
+            status_code=413,
+            content={"success": False, "error": f"Conversation is too long. The maximum is {MAX_CHAT_CHARS:,} characters."},
+        )
 
     ai_result = openai_analysis(chat)
 
