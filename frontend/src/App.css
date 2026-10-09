@@ -1140,3 +1140,51 @@ body { background: #04040a; }
 @media print {
   .boot-screen, .custom-cursor, .sound-toggle, .problem-story, .pipeline-story, .feature-story, .final-cta, .signal-marquee { display: none !important; }
 }
+
+/* Final neutral surface overrides for the black-only direction. */
+html, body, #root, .app-shell { background: #000 !important; color-scheme: dark; }
+.app-shell::before, .app-shell::after, .ambient, .grid-noise, .cta-aurora { display: none !important; }
+.topbar { border-bottom-color: rgba(255,255,255,.08); background: rgba(0,0,0,.88); }
+.brand-mark { border-color: rgba(255,255,255,.16); background: #0c0c0c; color: var(--cyan); box-shadow: none; }
+.brand > span:nth-child(2) > span { color: var(--text); }
+.hero-section h1 .headline-chaos { color: var(--text); text-shadow: none; }
+.hero-section h1 .headline-accent { color: var(--cyan); background: var(--gradient-text); background-clip: text; -webkit-background-clip: text; }
+.hero-section h1 .headline-accent .headline-letter { background-image: var(--gradient-text); }
+.hero-kicker, .hero-copy > p strong, .summary-card .card-topline .eyebrow { color: var(--cyan); }
+.hero-visual { border: 1px solid rgba(255,255,255,.08); border-radius: 5px; background: #050505; box-shadow: none; }
+.hero-visual::after, .hero-visual::before { display: none; }
+.glass-card, .summary-card, .score-panel, .health-panel, .actions-panel, .feature-card,
+.scenario-card, .input-guide, .editor-panel, .pipeline-node, .problem-message,
+.mission-stat, .kanban-column, .kanban-item {
+  border-color: rgba(255,255,255,.08);
+  background: #0a0a0a;
+  box-shadow: inset 0 1px rgba(255,255,255,.025);
+}
+.summary-card { background: #0b0b0b; }
+.bento-grid .glass-card:hover, .feature-card:hover, .scenario-card:hover, .kanban-item:hover {
+  border-color: rgba(104,215,255,.35);
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.feature-card::before, .feature-card::after, .feature-orbit, .scenario-card::before { opacity: .08; }
+.feature-card h3, .scenario-card h3, .pipeline-node h3 { color: var(--text); }
+.problem-wall, .pipeline-track, .feature-grid, .final-cta { background-color: #000; }
+.final-cta { border-color: rgba(255,255,255,.08); }
+.hero-cta-row .gradient-button, .cta-actions .gradient-button { background: var(--gradient-primary); box-shadow: none; }
+.hero-cta-row .secondary-button, .cta-actions .secondary-button { border-color: rgba(255,255,255,.18); }
+.hero-cta-row .secondary-button svg { color: var(--cyan); }
+.hero-meta i { background: var(--cyan); }
+.score-ring-value { stroke: var(--cyan); }
+.score-good .score-ring-value { stroke: #34d399; }
+.score-warning .score-ring-value { stroke: #fbbf24; }
+.score-risk .score-ring-value { stroke: #fb7185; }
+.badge-indigo, .badge-cyan, .badge-emerald { border-color: rgba(104,215,255,.22); background: rgba(104,215,255,.07); color: var(--cyan); }
+.badge-amber { border-color: rgba(251,191,36,.24); background: rgba(251,191,36,.07); color: #fbbf24; }
+.badge-rose { border-color: rgba(251,113,133,.24); background: rgba(251,113,133,.07); color: #fb7185; }
+.badge-pink, .badge-violet { border-color: rgba(255,255,255,.12); background: #111; color: var(--text-secondary); }
+.accent-icon, .summary-insight svg, .hero-visual-footer i, .scenario-index { color: var(--cyan); }
+.feature-purple, .feature-cyan, .feature-pink, .feature-lime { --feature-accent: var(--cyan); }
+.feature-story em, .final-cta em { color: var(--cyan); }
+.site-footer, .dashboard-nav, .dashboard-tabs { border-color: rgba(255,255,255,.08); }
+.dashboard-tabs a:hover, .dashboard-tabs a:focus-visible, .top-nav a.active { color: var(--cyan); }
+.app-shell :focus-visible { outline-color: var(--cyan); }
+.particle-fallback-glow { opacity: .14; }

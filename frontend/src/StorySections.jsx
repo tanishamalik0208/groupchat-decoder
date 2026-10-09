@@ -60,7 +60,6 @@ export default function StorySections({ onDecode, onDemo, demos }) {
       </section>
 
       <section className="final-cta" data-reveal>
-        <div className="cta-aurora" aria-hidden="true" />
         <span className="eyebrow"><ShieldCheck size={14} /> 04 / YOUR THREAD. YOUR CALL.</span>
         <h2>Make the<br /><em>chat make sense.</em></h2>
         <p>Your conversation is sent to the configured analysis service when you decode.</p>

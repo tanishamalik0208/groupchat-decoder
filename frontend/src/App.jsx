@@ -926,8 +926,6 @@ function App() {
       event.currentTarget.style.setProperty("--cursor-y", `${event.clientY}px`);
     }}>
       <PageSystems />
-      <div className="ambient" aria-hidden="true"><span /><span /><span /></div>
-      <div className="grid-noise" aria-hidden="true" />
       {isDraggingFile && <div className="drop-fullscreen" aria-live="polite"><Upload size={34} /><span>DROP TO DECODE</span><small>TXT / CSV // RELEASE TO LOAD THE CHAT</small></div>}
       <header className="topbar">
         <a className="brand" href="#" aria-label="GroupChat Decoder home"><span className="brand-mark"><Fingerprint size={19} /></span><span>groupchat<span>decoder</span></span><Badge tone="indigo">BETA</Badge></a>
