@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
-import { Volume2, VolumeX } from "lucide-react";
 import { clearActiveLenis, setActiveLenis } from "./pageMotion.js";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -125,48 +124,6 @@ function CursorLight() {
   }, []);
 
   return <div className="custom-cursor" aria-hidden="true"><span /></div>;
-}
-
-export function SoundToggle() {
-  const [enabled, setEnabled] = useState(false);
-  useEffect(() => {
-    if (!enabled) return undefined;
-    let audio;
-    let lastPlay = 0;
-    const onClick = (event) => {
-      if (!(event.target instanceof Element) || !event.target.closest("button, a")) return;
-      const now = performance.now();
-      if (now - lastPlay < 110) return;
-      lastPlay = now;
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      audio ||= new AudioContext();
-      if (audio.state === "suspended") void audio.resume();
-      const oscillator = audio.createOscillator();
-      const gain = audio.createGain();
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(740, audio.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(520, audio.currentTime + 0.055);
-      gain.gain.setValueAtTime(0.0001, audio.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.04, audio.currentTime + 0.008);
-      gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.07);
-      oscillator.connect(gain);
-      gain.connect(audio.destination);
-      oscillator.start();
-      oscillator.stop(audio.currentTime + 0.075);
-    };
-    document.addEventListener("click", onClick);
-    return () => {
-      document.removeEventListener("click", onClick);
-      if (audio && audio.state !== "closed") void audio.close();
-    };
-  }, [enabled]);
-
-  return (
-    <button className={`sound-toggle${enabled ? " sound-enabled" : ""}`} type="button" aria-pressed={enabled} aria-label={`UI sounds ${enabled ? "on" : "off"}`} title={`UI sounds ${enabled ? "on" : "off"}`} onClick={() => setEnabled((value) => !value)}>
-      {enabled ? <Volume2 size={15} /> : <VolumeX size={15} />}<span>SFX {enabled ? "ON" : "OFF"}</span>
-    </button>
-  );
 }
 
 export function BootSequence({ onComplete }) {

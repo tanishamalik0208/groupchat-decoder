@@ -22,7 +22,6 @@ import {
   LockKeyhole,
   MessageCircle,
   MessageSquareText,
-  Moon,
   Plus,
   Printer,
   RotateCcw,
@@ -30,14 +29,13 @@ import {
   ScanSearch,
   ShieldCheck,
   Sparkles,
-  Sun,
   Upload,
   Users,
   WandSparkles,
   X,
   Zap,
 } from "lucide-react";
-import { BootSequence, PageSystems, SoundToggle } from "./CyberEffects.jsx";
+import { BootSequence, PageSystems } from "./CyberEffects.jsx";
 import { animateDashboard, scrollPageTo } from "./pageMotion.js";
 import StorySections from "./StorySections.jsx";
 
@@ -233,10 +231,6 @@ function ScrambleLink({ label, children = label, ...props }) {
   };
   useEffect(() => () => window.clearInterval(intervalRef.current), []);
   return <a {...props} aria-label={label} onPointerEnter={(event) => { scramble(); props.onPointerEnter?.(event); }} onFocus={scramble}><span aria-hidden="true">{display}</span><span className="sr-only">{children}</span></a>;
-}
-
-function Tooltip({ label, children }) {
-  return <span className="tooltip-wrap" title={label}>{children}</span>;
 }
 
 function AnimatedNumber({ value, suffix = "" }) {
@@ -691,9 +685,6 @@ function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [booted, setBooted] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
-  const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem("gcd-theme") || "dark"; } catch { return "dark"; }
-  });
   const textAreaRef = useRef(null);
   const fileInputRef = useRef(null);
   const searchRef = useRef(null);
@@ -706,10 +697,6 @@ function App() {
     setToast(message);
     if (message) window.setTimeout(() => setToast((current) => current === message ? "" : current), 3200);
   }, []);
-
-  useEffect(() => {
-    try { localStorage.setItem("gcd-theme", theme); } catch { /* Storage may be unavailable in private contexts. */ }
-  }, [theme]);
 
   useEffect(() => {
     if (!result) return undefined;
@@ -928,13 +915,12 @@ function App() {
   const commands = [
     { title: "Focus conversation input", hint: "Jump to decoder studio", icon: <MessageSquareText size={16} />, run: focusWorkspace },
     { title: "Show keyboard shortcuts", hint: "Open help", icon: <HelpCircle size={16} />, run: () => setHelpOpen(true) },
-    { title: "Toggle appearance", hint: "Switch dark / light", icon: theme === "dark" ? <Sun size={16} /> : <Moon size={16} />, run: () => setTheme((value) => value === "dark" ? "light" : "dark") },
     ...DEMOS.map((demo) => ({ title: `Run ${demo.label} demo`, hint: "Analyze sample conversation", icon: <Zap size={16} />, run: () => startDemo(demo) })),
     ...NAV_SECTIONS.map(([id, label], index) => ({ title: `Go to ${label}`, hint: `Jump to section ${index + 1}`, icon: <ArrowRight size={16} />, run: () => scrollPageTo(document.getElementById(id), reducedMotion) })),
   ];
 
   return (
-    <div className={`app-shell theme-${theme}${isDraggingFile ? " is-file-dragging" : ""}`} onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); setIsDraggingFile(true); } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setIsDraggingFile(false); }} onDrop={(event) => { if (event.dataTransfer.files?.length) { event.preventDefault(); setIsDraggingFile(false); loadFile(event.dataTransfer.files[0]); } }} onPointerMove={(event) => {
+    <div className={`app-shell${isDraggingFile ? " is-file-dragging" : ""}`} onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); setIsDraggingFile(true); } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setIsDraggingFile(false); }} onDrop={(event) => { if (event.dataTransfer.files?.length) { event.preventDefault(); setIsDraggingFile(false); loadFile(event.dataTransfer.files[0]); } }} onPointerMove={(event) => {
       if (event.pointerType !== "mouse" || window.innerWidth < 760) return;
       event.currentTarget.style.setProperty("--cursor-x", `${event.clientX}px`);
       event.currentTarget.style.setProperty("--cursor-y", `${event.clientY}px`);
@@ -946,7 +932,7 @@ function App() {
       <header className="topbar">
         <a className="brand" href="#" aria-label="GroupChat Decoder home"><span className="brand-mark"><Fingerprint size={19} /></span><span>groupchat<span>decoder</span></span><Badge tone="indigo">BETA</Badge></a>
         <nav className="top-nav" aria-label="Primary navigation"><ScrambleLink label="DECODER" className={!result ? "active" : ""} href="#workspace">Decoder</ScrambleLink><ScrambleLink label="INTELLIGENCE" className={result ? "active" : ""} href={result ? "#dashboard" : "#scenarios"}>Intelligence</ScrambleLink></nav>
-        <div className="top-actions"><span className="service-status"><i /> ENGINE READY</span><SoundToggle /><Tooltip label={`Switch to ${theme === "dark" ? "light" : "dark"} appearance`}><button className="icon-button theme-toggle" title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} onClick={() => setTheme((value) => value === "dark" ? "light" : "dark")} type="button">{theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}</button></Tooltip><button className="command-trigger" onClick={() => setPaletteOpen(true)} type="button"><Command size={14} /><span>Command</span><kbd>⌘ K</kbd></button></div>
+        <div className="top-actions"><span className="service-status"><i /> ENGINE READY</span><button className="command-trigger" onClick={() => setPaletteOpen(true)} type="button"><Command size={14} /><span>Command</span><kbd>⌘ K</kbd></button></div>
       </header>
 
       <main className="page-shell">
