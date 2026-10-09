@@ -275,6 +275,7 @@ function HighlightedLine({ text, active }) {
 }
 
 function EvidenceDrawer({ evidence, chat, onClose }) {
+  const [mobileSheet, setMobileSheet] = useState(() => window.matchMedia("(max-width: 760px)").matches);
   const matching = useMemo(() => findSourceLines(chat, evidence), [chat, evidence]);
   const matchingSet = new Set(matching);
   const transcript = useMemo(() => chat.split(/\r?\n/).filter((line) => line.trim()), [chat]);
@@ -284,9 +285,15 @@ function EvidenceDrawer({ evidence, chat, onClose }) {
     const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
     firstMatchRef.current?.scrollIntoView({ behavior, block: "center" });
   }, [evidence]);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 760px)");
+    const updateMode = () => setMobileSheet(query.matches);
+    query.addEventListener("change", updateMode);
+    return () => query.removeEventListener("change", updateMode);
+  }, []);
   return (
     <motion.div className="drawer-backdrop" role="presentation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <motion.aside className="evidence-drawer" aria-labelledby="evidence-title" aria-modal="true" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: .25 }} role="dialog">
+      <motion.aside className={`evidence-drawer${mobileSheet ? " evidence-drawer-mobile" : ""}`} aria-labelledby="evidence-title" aria-modal="true" initial={mobileSheet ? { y: "100%" } : { x: "100%" }} animate={mobileSheet ? { y: 0 } : { x: 0 }} exit={mobileSheet ? { y: "100%" } : { x: "100%" }} transition={{ duration: .25 }} role="dialog">
         <header className="drawer-head"><div><span className="eyebrow">SOURCE CONTEXT</span><h2 id="evidence-title">Evidence drawer</h2></div><button className="icon-button" aria-label="Close evidence drawer" onClick={onClose} type="button"><X size={18} /></button></header>
         <div className="drawer-query"><Search size={15} /><span>{evidence}</span></div>
         <p className="drawer-note">{matching.length ? `${matching.length} related source line${matching.length === 1 ? "" : "s"} highlighted from the submitted conversation.` : "No matching source line was identified. Full submitted conversation shown for context."}</p>
@@ -343,7 +350,7 @@ function CommandPalette({ open, onClose, commands }) {
 }
 
 function DonutChart({ people }) {
-  const palette = ["#8185ff", "#22d3ee", "#34d399", "#f472b6", "#fbbf24", "#a78bfa"];
+  const palette = ["#68d7ff"];
   const circumference = 2 * Math.PI * 35;
   const segments = people.map((person, index) => ({
     person,
