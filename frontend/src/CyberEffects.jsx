@@ -81,49 +81,7 @@ export function PageSystems() {
     };
   }, []);
 
-  return <CursorLight />;
-}
-
-function CursorLight() {
-  useEffect(() => {
-    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!finePointer || reduceMotion) return undefined;
-
-    const cursor = document.querySelector(".custom-cursor");
-    if (!cursor) return undefined;
-    const x = gsap.quickTo(cursor, "x", { duration: 0.19, ease: "power3.out" });
-    const y = gsap.quickTo(cursor, "y", { duration: 0.19, ease: "power3.out" });
-    const onMove = (event) => {
-      x(event.clientX);
-      y(event.clientY);
-      cursor.classList.add("cursor-visible");
-    };
-    const onLeave = () => cursor.classList.remove("cursor-visible");
-    const onHover = (event) => {
-      const target = event.target instanceof Element ? event.target.closest("a, button, [data-cursor]") : null;
-      if (!target) return;
-      cursor.classList.add("cursor-active");
-      cursor.dataset.label = target.getAttribute("data-cursor") || (target.matches(".gradient-button, .scenario-card") ? "DECODE" : "OPEN");
-    };
-    const onUnhover = (event) => {
-      if (event.target instanceof Element && event.target.closest("a, button, [data-cursor]")) cursor.classList.remove("cursor-active");
-    };
-
-    window.addEventListener("pointermove", onMove, { passive: true });
-    document.addEventListener("pointerover", onHover);
-    document.addEventListener("pointerout", onUnhover);
-    document.documentElement.addEventListener("pointerleave", onLeave);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerover", onHover);
-      document.removeEventListener("pointerout", onUnhover);
-      document.documentElement.removeEventListener("pointerleave", onLeave);
-      gsap.killTweensOf(cursor);
-    };
-  }, []);
-
-  return <div className="custom-cursor" aria-hidden="true"><span /></div>;
+  return null;
 }
 
 export function BootSequence({ onComplete }) {

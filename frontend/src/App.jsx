@@ -41,7 +41,8 @@ import StorySections from "./StorySections.jsx";
 
 const ParticleField = lazy(() => import("./ParticleField.jsx"));
 
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
+const apiEndpoint = (path) => `${API_URL}/${path}`;
 const MIN_DECODING_MS = 2500;
 const NAV_SECTIONS = [
   ["summary", "Overview"],
@@ -706,7 +707,7 @@ function App() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${API_URL}/health`, { signal: controller.signal })
+    fetch(apiEndpoint("health"), { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error("Health check failed");
         return response.json();
@@ -863,7 +864,7 @@ function App() {
     setCanRetry(false);
     setToast("");
     try {
-      const responsePromise = fetch(`${API_URL}/analyze`, {
+      const responsePromise = fetch(apiEndpoint("analyze"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chat: text }),
