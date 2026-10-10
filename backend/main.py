@@ -17,6 +17,7 @@ load_dotenv(Path(__file__).with_name(".env"))
 
 logger = logging.getLogger("groupchat_decoder.api")
 DEFAULT_ALLOWED_ORIGINS = (
+    "https://groupchat-decoder.vercel.app",
     "http://localhost:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5173",
@@ -25,7 +26,7 @@ DEFAULT_ALLOWED_ORIGINS = (
 configured_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
 ALLOWED_ORIGINS = (
     [origin.strip() for origin in configured_origins.split(",") if origin.strip()]
-    if "ALLOWED_ORIGINS" in os.environ
+    if configured_origins
     else list(DEFAULT_ALLOWED_ORIGINS)
 )
 MAX_REQUEST_BYTES = int(os.getenv("MAX_REQUEST_BYTES", "1000000"))

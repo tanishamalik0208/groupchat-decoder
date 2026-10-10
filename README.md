@@ -91,6 +91,10 @@ python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
 Open `backend/.env` to set `ALLOWED_ORIGINS`. Local deterministic analysis is the default. To enable the optional OpenAI integration, set `USE_OPENAI=true` and add your `OPENAI_API_KEY` there. Never put provider keys in frontend settings.
 
+### Production deployment (Vercel + Render)
+
+The deployed frontend at `https://groupchat-decoder.vercel.app` proxies `/api/*` requests to the Render API through `frontend/vercel.json`, avoiding browser cross-origin requests. In the Render backend service, set `ALLOWED_ORIGINS` to include `https://groupchat-decoder.vercel.app` (comma-separated with any other exact origins you intend to allow), then redeploy the backend. The backend defaults include this production origin when `ALLOWED_ORIGINS` is unset or blank. Do not use `*`; CORS must remain restricted to the intended frontend origins.
+
 ### Frontend
 
 In a second terminal:

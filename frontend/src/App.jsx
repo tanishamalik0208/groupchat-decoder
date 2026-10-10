@@ -41,7 +41,7 @@ import StorySections from "./StorySections.jsx";
 
 const ParticleField = lazy(() => import("./ParticleField.jsx"));
 
-const API_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
+const API_URL = (import.meta.env.DEV ? import.meta.env.VITE_API_URL || "/api" : "/api").replace(/\/$/, "");
 const apiEndpoint = (path) => `${API_URL}/${path}`;
 const MIN_DECODING_MS = 2500;
 const NAV_SECTIONS = [
